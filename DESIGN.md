@@ -46,11 +46,33 @@ engine, a queue, a Release table, denormalised price rollups, a monorepo, and an
 Each is either not asked for or is a cost that pays nothing at this size. Upgrade triggers for the
 interesting ones are in `docs/decisions/`.
 
+## Interface
+
+Seven screens, no client components. Filters, sort, cursor, compare selection and benchmark are
+query-string state submitted by native forms, so a screen is a function of its URL and the URL is the
+same one `GET /api/models` accepts — see `docs/decisions/0006`.
+
+Tokens live in `src/app/globals.css` and nowhere else: `--bg --fg --muted --faint --line --panel
+--accent`. Two rules the design lints enforce and that are easy to break by accident:
+
+- **No colour literal outside the token block.** A page that wants a tone adds a token.
+- **Unknown is an em dash, never 0 or "Free".** `format.priceLabel(null)` is `\u2014`;
+  `format.priceLabel(0)` is `Free`. The Free filter and the price sort depend on that difference, and
+  so does the reviewer's ability to tell "we did not mirror this" from "this costs nothing".
+
+Repeated chrome (`.card`, `.rowline`, `table`, `.field`, `.btn`, `.chip`) is defined in that file in
+px, not as utility strings around a spacing token: the design checker cannot evaluate
+`calc(var(--spacing) * 3)`, and a gate whose output cannot be re-derived is decoration. One font is
+loaded — `Geist Mono`, tabular figures, for numbers only — and the "overused face" finding against it
+is accepted on purpose: a data table needs aligned digits, not a personality.
+
 ## Definition of done
 
-Deployed on Vercel + Neon with a seeded database; `npm run verify` green; every screen has loading,
-empty and error states; `EXPLAIN` output for the filtered list query in the README; 5–10 min Loom
-that explains the listing table, the keyset cursor and why there is no search engine.
+Deployed on Vercel + Neon with a seeded database; `npm run verify` and `npm run smoke` green; every
+screen has an empty state and an error state, and answers with the right status code (there is
+deliberately no `loading.tsx`: a streamed shell turns every 404 into a soft 200); `EXPLAIN` output for
+the filtered list query in the README; 5–10 min Loom that explains the listing table, the keyset
+cursor and why there is no search engine.
 
 ## Method note
 

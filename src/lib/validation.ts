@@ -6,7 +6,13 @@ export const CAPABILITIES = ['reasoning', 'tools', 'structured', 'vision', 'open
 export const SORT_KEYS = ['released', 'context', 'priceLow', 'priceHigh', 'name'] as const;
 export const MODEL_TYPES = ['TEXT', 'IMAGE', 'EMBEDDING', 'VIDEO', 'SPEECH', 'TRANSCRIPTION', 'RERANKING', 'REALTIME'] as const;
 
-const boolFlag = z.preprocess((v) => (v === 'true' || v === '1' || v === '' ? true : v === 'false' ? false : v), z.boolean().optional());
+// A GET form submits `<input type=checkbox name=free value=true>` only when checked, and submits
+// `q=` (empty) for a text box the user left alone. parseQuery drops empty values, so this only has
+// to understand real ones.
+const boolFlag = z.preprocess(
+  (v) => (v === 'true' || v === '1' || v === 'on' ? true : v === 'false' || v === '0' || v === 'off' ? false : v),
+  z.boolean().optional(),
+);
 
 export const listQuerySchema = z.object({
   q: z.string().trim().min(1).max(200).optional(),
@@ -111,7 +117,9 @@ export const rawEndpointListSchema = z
 /** Query params -> validated object, or a flat field map the route turns into a 400. */
 export function parseQuery<T extends z.ZodTypeAny>(schema: T, searchParams: URLSearchParams) {
   const raw: Record<string, string> = {};
-  for (const [k, v] of searchParams.entries()) raw[k] = v;
+  // Empty strings from an untouched form field are "not set", not a value to validate: keeping
+  // them would turn a first search into a 400 (min(1) on q, nonnegative on minContext).
+  for (const [k, v] of searchParams.entries()) if (v !== '') raw[k] = v;
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
     return { ok: false as const, fields: parsed.error.flatten().fieldErrors };

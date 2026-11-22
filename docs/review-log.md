@@ -20,9 +20,29 @@ Nothing here is decoration: an unaddressed finding is a bug I chose. Skips carry
 | `EXPLAIN (ANALYZE, BUFFERS)` | `LISTING_AGGREGATE` | `array_agg(DISTINCT pv.name ORDER BY pv.name)` cost a full `Provider` scan per model (`loops=106`) | Column deleted rather than indexed: the list needs a count, the detail page has the names. Measured 3.25 ms for an unfiltered page of 476 models afterwards |
 | `smoke` + `normalise` | `uptimePct` | `Out of range value for Decimal(5,2)`: upstream sends uptime **already as a percentage** (99.418…), my code assumed a 0..1 ratio and multiplied by 100. My own test asserted the same wrong assumption, so it passed green | Read the real payload, then fixed the function and the fixture values (99.4186 → '99.42', latency null → null). Lesson recorded below |
 
+| `npm run lint:screens` (impeccable detect over rendered HTML) | 10 screens | **110 findings** once the tool could see the compiled CSS: 85 `cramped-padding`, 16 `undersized-ui-text`, 2 `low-contrast`, 7 `overused-font` | Down to **7**, all deliberate (below). Fixed: `--faint` `#6d6e77` was **3.86:1** on the page background — below AA — now `#8e9099` at **6.15:1**; the release-cadence month labels at 10px are now 11px; card and cell padding moved from Tailwind spacing tokens to explicit px in `.card`/`.rowline`/`th,td` |
+| `npm run lint:screens` | `.card` | 73 of those 85 padding findings were false positives, and identifying them was the useful part: the tool cannot evaluate `calc(var(--spacing) * 3)`, so every token-padded box reads as flush | Padding for repeated chrome now lives in `globals.css` in px, with the reason written above it. A check whose output nobody can re-derive is not a gate — and px is one less thing for a reviewer to resolve mentally |
+| `npm run lint:screens` | `tablewrap` | 12 findings: "children flush against border". The wrapper's only child is the `<table>`, which spans it edge to edge; the cells inside are padded | The frame moved from the scroll wrapper to the table (`border-collapse: separate` so the corners still round) and the last row's bottom rule was dropped, which was quietly doubling against the frame |
+| `npm run lint:screens` | advisory | `em-dash-overuse`: 143 em-dashes on `/providers` | **Accepted, not a prose problem.** Those are table cells meaning "no value mirrored" — the same glyph as the unknown-price marker everywhere else in the app. Replacing it with a word would make the table wider and the meaning no clearer |
+| `npm run lint:screens` | `layout.css` | `overused-font` ×7 for Geist Mono | **Kept.** One mono face carries every tabular figure in the product; loading a second family to satisfy "be distinctive" costs ~60 kB and buys nothing a data table needs. Documented in `DESIGN.md` rather than quietly ignored |
+| curl vs. the 404 page | `src/app/loading.tsx` | adding a root `loading.tsx` made every streamed route commit HTTP 200 *before* `notFound()` ran: a perfectly rendered 404 page behind a 200 | File deleted; `error.tsx` and `not-found.tsx` kept. Smoke now asserts `status === 404`, so the soft-404 regression cannot come back with the next "nice loading state" |
+| `npm run smoke` | the new page checks | three assertions failed against working pages: React splits `{n} matching` into `476<!-- --> matching`, and it reorders input attributes, so `value="tools" checked` never matched | `getPage` strips the comment separators and the chip check extracts the tag then looks inside it. A test that pins markup order is a test of the renderer's internals |
+| reading my own page | `/providers` | header said "Median-ish in /1M" over a column that is an arithmetic mean | Renamed to "Avg input /1M". A hedged label is how a wrong one survives review |
+| reading my own page | `/compare` | `className="flex cursor-items-center gap-2"` — a class I invented; the picker rows were unaligned | `items-center`. Only visible because the rendered snapshot put the boxes where I could look at them |
+
 ## The lesson I would repeat differently
 
-Three of the bugs above (the enum cast, the Decimal range, the leaked spread fields) were invisible to
+## What the rendered-HTML pass changed about my method
+
+The regex mode of `impeccable detect` told me nothing for three rounds because it was reporting on
+source text, not on a page. Running it over saved HTML plus the compiled stylesheet produced 110
+findings on the same code — including a real contrast failure on a token I had typed by hand and
+never measured. The rule I would keep: **a lint that cannot see the artifact is not a gate**, and the
+cheapest way to give it the artifact when there is no browser is to save the response body.
+
+## The lesson I would repeat differently
+
+Four of the bugs above (the enum cast, the Decimal range, the leaked spread fields) were invisible to
 a green unit test suite and only appeared once a real Postgres answered. For this codebase that means:
 `npm run smoke` against a running database is not a nice-to-have on top of `npm test` — it is the
 check that the SQL layer exists at all. Both are wired into the scripts for that reason.

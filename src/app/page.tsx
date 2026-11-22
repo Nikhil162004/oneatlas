@@ -45,7 +45,7 @@ export default async function Home() {
       {stats && (
         <ul className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-5" aria-label="Capability coverage">
           {(Object.entries(stats.coverage) as Array<[keyof Stats['coverage'], number]>).map(([key, pct]) => (
-            <li key={key} className="flex items-center justify-between gap-3 border border-[var(--line)] px-3 py-2">
+            <li key={key} className="rowline">
               <span className="text-[var(--muted)]">{COVERAGE_LABEL[key]}</span>
               <span className="num">{pct}%</span>
             </li>

@@ -156,5 +156,88 @@ await check('GET /api/labs and /api/providers list the directory', async () => {
   assert(detail.status === 200 && detail.body.data.models.length === first.modelCount, 'lab detail disagrees with the directory');
 });
 
+/* ---- screens ------------------------------------------------------------------
+ * Everything above is the API. These exist because the two halves of this app can fail
+ * independently: a page can 500 with a healthy API (that already happened once — a server
+ * component doing a relative fetch), and a page can render an em-dash where a number belongs,
+ * which no status code would catch. So: assert on the numbers, and assert they agree with the API.
+ */
+
+const getPage = async (path) => {
+  const res = await fetch(`${BASE}${path}`, { cache: 'no-store' });
+  // React separates adjacent text nodes with comments, so `{n} matching` arrives as
+  // `476<!-- --> matching`. Strip them or every "does the page show this number" assertion is a
+  // coin flip on whether the expression happened to be one node or two.
+  return { status: res.status, text: (await res.text()).replace(/<!--\s*-->/g, '') };
+};
+
+await check('GET /models lists rows and agrees with the API on the total', async () => {
+  const page = await getPage('/models');
+  assert(page.status === 200, `HTTP ${page.status}`);
+  assert(/<table/.test(page.text), 'no table rendered');
+  const api = await get('/api/models?limit=25');
+  const shown = page.text.match(/href="\/models\/[a-z0-9.-]+\/[a-z0-9.-]+"/g) ?? [];
+  assert(shown.length >= 20, `only ${shown.length} model links in the page body`);
+  assert(page.text.includes(`${api.body.meta.total} matching`), `page does not state the API's total of ${api.body.meta.total}`);
+});
+
+await check('a filter changes the result count on the page, not just the API', async () => {
+  const all = await get('/api/models?limit=1');
+  const img = await get('/api/models?limit=1&type=IMAGE&capabilities=tools');
+  assert(img.status === 200 && img.body.meta.total > 0 && img.body.meta.total < all.body.meta.total, `filter did not narrow: ${img.body.meta.total} of ${all.body.meta.total}`);
+  const page = await getPage('/models?type=IMAGE&capabilities=tools');
+  assert(page.text.includes(`${img.body.meta.total} matching`), 'page shows a different count than the same query on the API');
+  // The capability chips must come back checked, or a filtered URL loses the filter when the user
+  // tweaks anything else.
+  // Attribute order is React's business, not ours, so find the tag first and then look inside it.
+  const chip = page.text.match(/<input[^>]*value="tools"[^>]*>/)?.[0] ?? '';
+  assert(/checked/.test(chip), `tools chip not rendered checked, so the form loses the filter: ${chip}`);
+});
+
+await check('GET /models/{lab}/{slug} renders the provider table; unknown is 404', async () => {
+  const list = await get('/api/models?limit=1&sort=priceLow');
+  const slug = list.body.data[0].slug;
+  const detail = await get(`/api/models/${slug}`);
+  const page = await getPage(`/models/${slug}`);
+  assert(page.status === 200, `HTTP ${page.status} for ${slug}`);
+  assert(page.text.includes(detail.body.data.name), 'model name missing from the page');
+  assert(page.text.includes(`${detail.body.data.providers.length}`), `provider count ${detail.body.data.providers.length} not rendered`);
+  assert(/cheapest/.test(page.text), 'no cheapest marker on the price list');
+  const missing = await getPage('/models/ghost/no-such-model');
+  assert(missing.status === 404, `unknown model page returned ${missing.status}, expected 404`);
+});
+
+await check('GET /rankings and /compare render the data behind them', async () => {
+  const rk = await getPage('/rankings');
+  const api = await get('/api/rankings?limit=50');
+  assert(rk.status === 200 && rk.text.includes(`${api.body.meta.total} scored rows`), `rankings page disagrees with the API (${api.body.meta.total} rows)`);
+
+  const ids = (await get('/api/models?limit=2')).body.data.map((m) => m.slug);
+  const cmp = await getPage(`/compare?ids=${encodeURIComponent(ids.join(','))}`);
+  assert(cmp.status === 200, `HTTP ${cmp.status}`);
+  for (const slug of ids) {
+    const name = (await get(`/api/models/${slug}`)).body.data.name;
+    assert(cmp.text.includes(name), `${name} missing from the comparison`);
+  }
+  const single = await getPage('/compare?ids=' + ids[0]);
+  assert(single.status === 200 && /Pick at least two/.test(single.text), 'a one-model compare should show the picker, not an error');
+});
+
+await check('GET /labs, /providers and a lab page render the directory', async () => {
+  const labs = await get('/api/labs?limit=200');
+  const page = await getPage('/labs');
+  assert(page.status === 200 && page.text.includes(`${labs.body.data.length} organisations`), 'lab count on page disagrees with API');
+  const prov = await getPage('/providers');
+  assert(prov.status === 200 && /<tbody/.test(prov.text), 'providers table missing');
+  const firstLab = labs.body.data[0];
+  const lab = await getPage(`/labs/${firstLab.slug}`);
+  assert(lab.status === 200, `lab page HTTP ${lab.status}`);
+  // Count the rows rather than a label: the directory's number and the page's table have to agree,
+  // and "6 models" appears on the directory page, not this one.
+  const labRows = (lab.text.match(/href="\/models\/[a-z0-9.-]+\//g) ?? []).length;
+  assert(labRows === firstLab.modelCount, `${firstLab.slug}: profile lists ${labRows} models, directory says ${firstLab.modelCount}`);
+  assert((await getPage('/labs/ghost')).status === 404, 'unknown lab should be a 404 page');
+});
+
 console.log(`\n${pass} passed, ${fail.length} failed`);
 process.exit(fail.length ? 1 : 0);
