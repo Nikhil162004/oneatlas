@@ -5,7 +5,7 @@ Full Stack Engineer submission.
 
 | Submission item | State |
 |---|---|
-| Live URL | https://oneatlas-smoky.vercel.app - deployed on Vercel (Hobby) with Neon Postgres; `npm run smoke` passes 28/28 against this URL |
+| Live URL | https://oneatlas-smoky.vercel.app - deployed on Vercel (Hobby) with Neon Postgres; `npm run smoke` passes 42/42 against this URL |
 | GitHub repository URL | https://github.com/Nikhil162004/oneatlas |
 | Loom, 5-10 min | **pending** - the walkthrough script is [Read this first](#read-this-first); the video is the author talking, not a generated asset |
 
@@ -23,7 +23,7 @@ screen through the API — there is no fixture array in the frontend.
 Next.js (App Router, server components) · React · TypeScript · TailwindCSS · Next.js route handlers ·
 Zod · PostgreSQL · Prisma. Vercel + Neon is the deploy target; nothing here needs anything else.
 
-Twenty-four screens, an API index page, twenty-three API routes, one Postgres schema. Every screen is
+Twenty-four screens, an API index page, twenty-four API routes, one Postgres schema. Every screen is
 server-rendered; the four with controls carry a client island that fetches the screen's own API
 and refreshes only its results region, so a filter click never reloads the page, while the URL
 stays the state (`docs/decisions/0008`). Every screen renders from the same service its endpoint does
@@ -66,7 +66,7 @@ src/components/ui.tsx       badges, empty/error states, pager
 tests/                      node:test over the pure layer: npm test
 scripts/smoke.mjs           27 contract checks against a running server, API *and* HTML
 scripts/linkcheck.mjs       no <Link> may point at a route handler (see docs/review-log.md)
-docs/                       references.md, decisions/0001-0007, ui-brief.md, review-log.md, architecture.{html,svg}
+docs/                       references.md, decisions/0001-0010, ui-brief.md, review-log.md, architecture.{html,svg}
 DESIGN.md (repo root)       the design document, §API included
 ```
 
