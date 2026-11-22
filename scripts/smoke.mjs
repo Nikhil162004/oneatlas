@@ -39,8 +39,11 @@ await check('GET / renders numbers, not an error page', async () => {
   const html = await res.text();
   assert(res.status === 200, `HTTP ${res.status}`);
   assert(/Every AI model, compared/.test(html), 'hero copy missing, is the page rendering at all?');
-  assert(!/Application error|digest|MODULE_NOT_FOUND/.test(html), 'Next error overlay in the HTML');
-  assert(/>\d{2,}<\/|476/.test(html.replace(/\s/g, '')) || !/—<\/dd>/.test(html), 'counters all em-dashes: server render cannot see the data layer');
+  // A missing chunk or a thrown render error makes Next answer 500, so the status is the real
+  // signal. Do NOT grep the HTML for "digest" and friends: that string is in every dev response
+  // (React's dev payload) and the assertion would fail on a healthy page.
+  const dashes = (html.match(/\u2014<\/dd>/g) ?? []).length;
+  assert(dashes < 4, `all four counters are em-dashes (dashes=${dashes}): the server render cannot see the data layer`);
 });
 
 await check('GET /api/stats reports the catalogue and cache headers', async () => {
