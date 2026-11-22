@@ -18,14 +18,14 @@
     "db:studio": "prisma studio",
     "ingest": "tsx --env-file=.env scripts/ingest.ts",
     "verify": "npm run typecheck && npm test",
-    "ingest:offline": "tsx --env-file-if-exists=.env scripts/ingest.ts --offline fixtures/or_models.json --dry",
+    "ingest:offline": "tsx --env-file-if-exists=.env scripts/ingest.ts --offline fixtures/or_models_full.json --dry",
     "db:push": "prisma db push",
     "db:counts": "tsx --env-file=.env scripts/counts.mjs",
     "smoke": "node scripts/smoke.mjs",
     "lint:design": "npx --yes impeccable@latest detect src/app"
   },
   "prisma": {
-    "seed": "tsx --env-file=.env scripts/ingest.ts --limit 40"
+    "seed": "tsx --env-file=.env scripts/ingest.ts --offline fixtures/or_models_full.json --limit 40"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
