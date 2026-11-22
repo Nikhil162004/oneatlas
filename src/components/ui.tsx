@@ -1,4 +1,4 @@
-/** Shared presentational pieces. All server components; none of them ship JavaScript. */
+/** Shared presentational pieces, used by server pages and by the client islands alike. */
 import Link from 'next/link';
 import { EMDASH } from '@/lib/format';
 import { hrefWith, type RawParams } from '@/lib/page';
@@ -146,8 +146,9 @@ export function Empty({ title, hint, action }: { title: string; hint?: string; a
 }
 
 /**
- * Cursor paging as two links. The cursor is a query param like any other, so there is no client
- * component here, and `total` is only stated on page 1 (keyset paging does not count the rest).
+ * Cursor paging as links. The cursor is a query param like any other; inside ModelsExplorer the
+ * click is intercepted and fetched in place, and `total` is only stated on page 1 (keyset paging
+ * does not count the rest).
  */
 export function Pager({ params, meta, pageHref }: { params: URLSearchParams; meta: { total: number | null; limit: number; nextCursor: string | null }; pageHref: (cursor: string) => string }) {
   return (

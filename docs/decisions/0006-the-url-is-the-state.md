@@ -1,6 +1,6 @@
 # 6. The URL is the state, so the frontend has no client JavaScript
 
-**Status:** accepted · **Date:** 2026-11-21 · **Affects:** `src/app/**\/page.tsx`, `src/lib/page.ts`
+**Status:** accepted 2026-11-21; the no-client-JavaScript half is superseded by `docs/decisions/0008` (2026-11-22). The URL-as-state decision stands. · **Affects:** `src/app/**\/page.tsx`, `src/lib/page.ts`
 
 ## Context
 

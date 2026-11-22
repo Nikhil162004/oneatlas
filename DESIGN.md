@@ -52,8 +52,9 @@ interesting ones are in `docs/decisions/`.
 
 ## Interface
 
-Eight screens, no client components. Filters, sort, cursor, compare selection and benchmark are
-query-string state submitted by native forms, so a screen is a function of its URL and the URL is the
+Eight screens; the four with controls are client islands over a server first paint
+(`docs/decisions/0008`). Filters, sort, cursor, compare selection and benchmark are query-string
+state, applied in place and written to the URL, so a screen is a function of its URL and the URL is the
 same one `GET /api/models` accepts — `docs/decisions/0006`.
 
 **Tokens** (`src/app/globals.css`, and nowhere else): `--bg --surface --surface-2 --fg --muted

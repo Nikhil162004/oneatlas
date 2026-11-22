@@ -23,9 +23,10 @@ screen through the API — there is no fixture array in the frontend.
 Next.js (App Router, server components) · React · TypeScript · TailwindCSS · Next.js route handlers ·
 Zod · PostgreSQL · Prisma. Vercel + Neon is the deploy target; nothing here needs anything else.
 
-Seven screens, an API index page, ten API routes, one Postgres schema. **No client JavaScript in the pages**: filters,
-sorts, cursors and the compare selection are query strings submitted by native `<form>`s, so the URL
-is the state and every screen renders from the same service its endpoint does
+Seven screens, an API index page, ten API routes, one Postgres schema. Every screen is
+server-rendered; the four with controls carry a client island that fetches the screen's own API
+and refreshes only its results region, so a filter click never reloads the page, while the URL
+stays the state (`docs/decisions/0008`). Every screen renders from the same service its endpoint does
 (`docs/decisions/0006-the-url-is-the-state.md`)
 (`docs/decisions/0006-the-url-is-the-state.md`). The three reference platforms were studied before
 any of this was written, and the verdicts are in `docs/references.md`: what OpenRouter's data shape
@@ -58,8 +59,8 @@ src/lib/query.ts            filters + sort + keyset cursor, one definition of ea
 src/lib/validation.ts       zod at every boundary
 src/lib/api.ts              response envelope, error mapping, cache policy
 src/app/api/*               ten endpoints, all under a versioned contract (see DESIGN.md §API)
-src/app/{models,rankings,api,…} the screens; server components only
-src/lib/services/*          the read side both the pages and the routes call — no page fetches /api
+src/app/{models,rankings,api,…} the screens; server components, client islands where a screen has controls
+src/lib/services/*          the read side; server components call it directly, islands fetch its /api twin
 src/lib/{present,format,page}.ts  row→JSON mapping, number/date display, searchParams→query
 src/components/ui.tsx       badges, empty/error states, pager
 tests/                      node:test over the pure layer: npm test
@@ -128,7 +129,7 @@ tiles, eyebrow labels, status pills or entrance animation.
 4. `docs/decisions/0005` + `src/lib/query.ts` — the keyset cursor, and why one table owns "sorted".
 5. `tests/query.test.ts` — the placeholder-invariant test that keeps hand-built SQL honest.
 6. `docs/decisions/0003` — why search is `pg_trgm` and not Meilisearch.
-7. `docs/decisions/0006` — why the pages contain no JavaScript, and what that deleted.
+7. `docs/decisions/0006` + `0008` — the URL as state, then client islands for in-place refresh, and what each deleted.
 8. `scripts/smoke.mjs` — the checks that make "it works" a reproducible claim rather than a screenshot.
 
 ## Verify — what is actually green, and what is not

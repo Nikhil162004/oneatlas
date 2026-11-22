@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import { Archivo } from 'next/font/google';
 import { getStats } from '@/lib/services/stats';
+import SiteSearch from '@/components/SiteSearch';
 import './globals.css';
 
 /*
@@ -64,10 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {/* On a phone the search field would crowd the strip; the page it goes to is the same form. */}
               <Link href="/search" className="py-2 text-[var(--muted)] hover:text-[var(--fg)] md:hidden">Search</Link>
             </nav>
-            <form method="get" action="/search" className="ml-auto hidden shrink-0 md:block">
-              <label className="sr-only" htmlFor="site-search">Search models, labs and providers</label>
-              <input id="site-search" className="field w-40 xl:w-60" type="search" name="q" placeholder="claude, mistral, DeepInfra" enterKeyHint="search" autoComplete="off" />
-            </form>
+            <SiteSearch />
           </div>
         </header>
         <main id="main" className="shell py-8">{children}</main>
