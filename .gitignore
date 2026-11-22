@@ -8,3 +8,6 @@ out
 .hallmark
 coverage
 .design-scan/
+
+# Vercel CLI project link (ids only, but it is machine-local)
+.vercel
