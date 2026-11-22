@@ -1,7 +1,9 @@
 import { ok, route } from '@/lib/api';
 import { prisma } from '@/lib/db';
 
-export const revalidate = 300;
+// force-dynamic, not revalidate: the handler reads `limit` off the URL, so a statically prerendered
+// copy would answer every query with the build-time default. Prisma is the cache layer here.
+export const dynamic = 'force-dynamic';
 
 /** GET /api/providers — the other half of module 5: who serves what, at what spread. */
 export const GET = route(async function providers(request: Request) {
