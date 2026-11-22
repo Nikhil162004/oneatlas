@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { listProviders } from '@/lib/services/catalogue';
 import { Empty, Section } from '@/components/ui';
 import { msLabel, pctLabel, priceLabel } from '@/lib/format';
@@ -54,6 +55,9 @@ export default async function ProvidersPage() {
                   <tr key={p.slug}>
                     <td data-title>
                       <span className="font-medium">{p.name}</span>
+                      <Link className="ml-2 text-xs text-[var(--faint)] underline" href={`/models?provider=${p.slug}`} aria-label={`models served by ${p.name}`}>
+                        models
+                      </Link>
                       {p.website && (
                         <a className="ml-2 text-xs text-[var(--faint)] underline" href={p.website} rel="noopener noreferrer" target="_blank" aria-label={`${p.name} website`}>
                           site

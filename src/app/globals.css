@@ -423,6 +423,12 @@ a.card:hover,
   width: 14px;
   height: 14px;
 }
+/* The active state of a link-shaped filter (aria-current is the semantic, this is the paint). */
+.chip[aria-current='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
 .chip:has(input:checked) {
   border-color: var(--accent);
   color: var(--accent);

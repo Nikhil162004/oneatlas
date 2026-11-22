@@ -11,6 +11,15 @@ test('every placeholder is used exactly once and values line up with it', () => 
   assert.deepEqual(found, Array.from({ length: values.length }, (_, i) => i + 1), 'placeholders must be 1..n with no gaps or reuse');
 });
 
+test('a lab or provider filter takes the slug a link submits and the name a person types', () => {
+  const { text, values } = buildList(q({ lab: 'Anthropic', provider: 'OpenAI' }));
+  // One predicate, two bindings: the value is passed twice on purpose, so the disjunction stays in
+  // the same statement instead of a resolver query whose absence would silently widen the result set.
+  assert.match(text, /\(l\.slug = \$1::text OR lower\(l\.name\) = lower\(\$2::text\)\)/);
+  assert.match(text, /pve\.slug = \$3::text OR lower\(pve\.name\) = lower\(\$4::text\)/);
+  assert.deepEqual(values.slice(0, 4), ['Anthropic', 'Anthropic', 'OpenAI', 'OpenAI']);
+});
+
 test('a typed % or _ in the search box is data, not a wildcard', () => {
   assert.equal(likeTerm('50% off'), '%50\\% off%');
   assert.equal(likeTerm('a_b'), '%a\\_b%');

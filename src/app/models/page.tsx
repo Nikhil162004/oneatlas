@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { listModels, listLabs } from '@/lib/services/catalogue';
+import { listModels, listLabs, listProviders } from '@/lib/services/catalogue';
 import { hrefWith, toSearchParams, type RawParams } from '@/lib/page';
 import { listQuerySchema, parseQuery, CAPABILITIES, MODEL_TYPES, SORT_KEYS } from '@/lib/validation';
 import { CapabilityTags, Empty, FilterBar, Notice, Pager } from '@/components/ui';
@@ -25,6 +25,7 @@ const FILTER_FIELDS: Array<{ key: string; label: string; multi?: boolean }> = [
   { key: 'capabilities', label: 'capability', multi: true },
   { key: 'type', label: 'type' },
   { key: 'lab', label: 'lab' },
+  { key: 'provider', label: 'provider' },
   { key: 'minContext', label: 'min context' },
   { key: 'maxPrice', label: 'max price' },
   { key: 'free', label: 'free tier only' },
@@ -62,9 +63,12 @@ export default async function ModelsPage({ searchParams }: { searchParams: Promi
 
   const query = parsed.data;
   // A database that is down or not yet seeded renders an empty table with an explanation, not a 500.
-  const [{ data, meta }, labs] = await Promise.all([
+  const [{ data, meta }, labs, providers] = await Promise.all([
     listModels(query).catch(() => ({ data: [], meta: { total: null, limit: query.limit, sort: query.sort, dir: undefined, nextCursor: null } })),
     listLabs(200).catch(() => ({ data: [] })),
+    // Only providers with a mirrored endpoint can serve anything, so those are the only ones worth
+    // offering as a filter; listProviders already excludes catalogue-only listings.
+    listProviders(200).then((r) => ({ data: r.data })).catch(() => ({ data: [] })),
   ]);
 
   // limit/sort/dir are how the table is arranged, not what is in it, so they are not filter chips.
@@ -105,6 +109,13 @@ export default async function ModelsPage({ searchParams }: { searchParams: Promi
             <input className="field w-full" list="labs" name="lab" defaultValue={query.lab ?? ''} placeholder="any" enterKeyHint="search" autoComplete="off" />
             <datalist id="labs">
               {labs.data.map((l) => <option key={l.slug} value={l.slug}>{`${l.name} ${l.modelCount}`}</option>)}
+            </datalist>
+          </label>
+          <label className="block">
+            <span className="label mb-1 block">Provider</span>
+            <input className="field w-full" list="providers" name="provider" defaultValue={query.provider ?? ''} placeholder="any" enterKeyHint="search" autoComplete="off" />
+            <datalist id="providers">
+              {providers.data.map((pv) => <option key={pv.slug} value={pv.slug}>{`${pv.name} ${pv.modelCount}`}</option>)}
             </datalist>
           </label>
           <label className="block">

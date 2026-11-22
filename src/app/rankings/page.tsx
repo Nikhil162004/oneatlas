@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { rankings } from '@/lib/services/catalogue';
 import { hrefWith, toSearchParams, type RawParams } from '@/lib/page';
-import { parseQuery, rankingQuerySchema } from '@/lib/validation';
+import { MODEL_TYPES, parseQuery, rankingQuerySchema } from '@/lib/validation';
 import { Empty, Meter, Notice, Section } from '@/components/ui';
 import { contextLabel, priceLabel } from '@/lib/format';
 
@@ -28,6 +28,10 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
   const q = parsed.data;
   const { data, meta } = await rankings(q).catch(() => ({ data: [], meta: { total: 0, limit: q.limit, offset: q.offset, benchmarks: [] } }));
   const scored = meta.benchmarks.filter((b) => b.scored > 0);
+  // Benchmark families come out of the mirrored rows, not out of an enum: if a category has no
+  // scored model in this snapshot, it is not offered, because a filter that always returns nothing
+  // is a broken control wearing a label.
+  const families = [...new Set(scored.map((b) => b.category))].filter(Boolean).sort();
   const top = Math.max(1, ...data.map((r) => r.score));
 
   return (
@@ -40,25 +44,54 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
       </div>
 
       <nav aria-label="Benchmarks" className="flex flex-wrap gap-2">
-        <Link className="chip" href={hrefWith(raw, { benchmark: null, offset: null })} aria-current={!q.benchmark ? 'true' : undefined} style={!q.benchmark ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : undefined}>
+        <Link className="chip" href={hrefWith(raw, { benchmark: null, offset: null })} aria-current={!q.benchmark ? 'true' : undefined}>
           all benchmarks
         </Link>
-        {scored.map((b) => {
-          const active = q.benchmark === b.slug;
-          return (
-            <Link key={b.slug} className="chip" href={hrefWith(raw, { benchmark: b.slug, offset: null })} aria-current={active ? 'true' : undefined} style={active ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : undefined}>
-              {b.name}
-              <span className="num text-[11px] text-[var(--faint)]">{b.scored}</span>
-            </Link>
-          );
-        })}
+        {scored.map((b) => (
+          <Link key={b.slug} className="chip" href={hrefWith(raw, { benchmark: b.slug, offset: null })} aria-current={q.benchmark === b.slug ? 'true' : undefined}>
+            {b.name}
+            <span className="num text-[11px] text-[var(--faint)]">{b.scored}</span>
+          </Link>
+        ))}
       </nav>
+
+      {/* Categories, the other half of "filter by model categories and benchmarks". A select rather
+          than chips because there are eleven model types and seven benchmark families: a wall of
+          chips would be louder than the board. Native controls, one GET form, no JavaScript. */}
+      <form method="get" action="/rankings" className="card grid max-w-2xl gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="label mb-1 block">Model category</span>
+          <select className="field w-full" name="type" defaultValue={q.type ?? ''}>
+            <option value="">All categories</option>
+            {MODEL_TYPES.map((t) => <option key={t} value={t}>{t.toLowerCase()}</option>)}
+          </select>
+        </label>
+        <label className="block">
+          <span className="label mb-1 block">Benchmark family</span>
+          <select className="field w-full" name="category" defaultValue={q.category ?? ''}>
+            <option value="">All families</option>
+            {families.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+        {q.benchmark && <input type="hidden" name="benchmark" value={q.benchmark} />}
+        <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
+          <button className="btn btn-primary" type="submit">Apply</button>
+          {(q.type || q.category) && (
+            <Link className="text-sm underline text-[var(--muted)]" href={hrefWith(raw, { type: null, category: null, offset: null })}>
+              clear categories
+            </Link>
+          )}
+          <span className="num text-xs text-[var(--faint)]">
+            {data.length} of {meta.total} rows
+          </span>
+        </div>
+      </form>
 
       {!data.length ? (
         <Empty
-          title="Nothing scored on that benchmark"
-          hint="Only models whose catalogue entry carried a score are in here, so most of them are not."
-          action={{ href: '/rankings', label: 'All benchmarks' }}
+          title="Nothing scored with those filters"
+          hint="Only models whose catalogue entry carried a score are mirrored, so most of them are not in this board at all. A category that exists in the catalogue but has no scored model returns nothing here, and that is a fact about the data, not an empty state to design around."
+          action={{ href: '/rankings', label: 'Reset the board' }}
         />
       ) : (
         <>

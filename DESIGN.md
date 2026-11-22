@@ -19,11 +19,15 @@ compare screen cannot show "same model, cheaper elsewhere" — which is the prod
 
 | Module | Implementation |
 |---|---|
-| 1 Discovery & search | `GET /api/models` with `q, lab, provider, type, capabilities[], minContext, maxPrice, free, hideDeprecated, sort, dir, cursor, limit`; SQL filters + `pg_trgm` ILIKE; `/models` screen keeps all of it in the URL |
+| 1 Discovery & search | `GET /api/models` with `q, lab, provider, type, capabilities[], minContext, maxPrice, free, hideDeprecated, sort, dir, cursor, limit`; SQL filters + `pg_trgm` ILIKE; `/models` screen exposes all of it: every parameter has a control in the one GET form (lab and
+  provider as datalists), and each active one shows as a removable chip above the table |
 | 2 Detail pages | `GET /api/models/{lab}/{slug}`; specs, per-provider price table, modalities/capabilities, benchmark strip |
 | 3 Comparison | `GET /api/models/compare?ids=` (2–6, GET so the selection is shareable); row-oriented matrix |
-| 4 Rankings & benchmarks | `GET /api/rankings?benchmark&category&type&minContext`; offset paging by rank |
-| 5 Labs & providers | `GET /api/labs`, `/api/labs/{slug}`, `/api/providers`; releases derived by grouping models on `releaseDate` |
+| 4 Rankings & benchmarks | `GET /api/rankings?benchmark&category&type&minContext`; the screen offers benchmark chips plus
+  model-category and benchmark-family selects; offset paging by rank |
+| 5 Labs & providers | `GET /api/labs`, `/api/labs/{slug}`, `/api/providers`; releases derived by grouping models on
+  `releaseDate`; each provider row links back to `/models?provider={slug}`, so the directory is a
+  starting point and not a dead end |
 | 6 Product experience | shared nav, `GET /api/search` global lookup, responsive table, loading/empty/error states |
 
 ## Data

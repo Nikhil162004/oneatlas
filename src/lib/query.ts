@@ -79,11 +79,17 @@ function conditions(f: Partial<ListQuery>, p: (v: unknown, cast?: string) => str
     const t = likeTerm(f.q);
     w.push(`(m."name" ILIKE ${p(t)} ESCAPE '\\' OR m."slug" ILIKE ${p(t)} ESCAPE '\\')`);
   }
-  if (f.lab) w.push(`l.slug = ${p(f.lab, 'text')}`);
+  // Both references accept a slug *or* a display name, case-insensitively. The links and the
+  // datalists always submit slugs; a hand-typed `provider=OpenAI` used to return zero rows, which is
+  // indistinguishable from "nobody serves that" - a wrong answer that looks like a real one. Lab and
+  // Provider are 60 and 75 rows, so the disjunction is free here; resolving the name in a second
+  // query would cost a round trip per request and still need this same fallback for typos.
+  if (f.lab) w.push(`(l.slug = ${p(f.lab, 'text')} OR lower(l.name) = lower(${p(f.lab, 'text')}))`);
   if (f.provider) {
     w.push(`EXISTS (SELECT 1 FROM "ModelListing" pe
                     JOIN "Provider" pve ON pve.id = pe."providerId"
-                    WHERE pe."modelId" = m.id AND pve.slug = ${p(f.provider, 'text')})`);
+                    WHERE pe."modelId" = m.id
+                      AND (pve.slug = ${p(f.provider, 'text')} OR lower(pve.name) = lower(${p(f.provider, 'text')})))`);
   }
   if (f.type) w.push(`m."modelType" = ${p(f.type, '"ModelType"')}`);
   for (const c of f.capabilities ?? []) {

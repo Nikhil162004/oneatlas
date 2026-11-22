@@ -314,5 +314,55 @@ await check('a linked row exposes exactly one tab stop', async () => {
   }
 });
 
+await check('the provider filter works by slug and by name, and is reachable from the form', async () => {
+  // Requirement: "Filter by company, provider, capabilities and model type". The provider filter used
+  // to live only in the API and only accepted a slug, so `?provider=OpenAI` answered "0 matching" —
+  // a wrong answer shaped like a real one.
+  const bySlug = await get('/api/models?provider=openai&limit=1');
+  const byName = await get('/api/models?provider=OpenAI%20Corporation&limit=1');
+  const byPlainName = await get('/api/models?provider=OpenAI&limit=1');
+  assert(bySlug.body.meta.total > 0, 'the openai slug matches nothing, is the mirror loaded?');
+  assert(byPlainName.body.meta.total === bySlug.body.meta.total, `by name ${byPlainName.body.meta.total} != by slug ${bySlug.body.meta.total}`);
+  assert(byName.body.meta.total === 0, 'a name that does not exist matched rows anyway');
+  const api = await get('/api/models?provider=openai&limit=1');
+  const page = await getPage('/models?provider=openai');
+  assert(page.text.includes(`${api.body.meta.total} matching`), 'the page count disagrees with the API for the same provider filter');
+  assert(/name="provider"/.test(page.text), 'the filter form has no provider field');
+  assert(/id="providers"/.test(page.text), 'the provider field has no datalist, so a person must guess slugs');
+  const labByName = await getPage('/models?lab=Anthropic');
+  assert(labByName.status === 200 && /matching/.test(labByName.text), 'lab filtering by name broke');
+  // The directory has to lead somewhere: "discover providers and their supported models" is only
+  // half a feature if a provider row is a dead end.
+  const providers = await get('/api/providers?limit=200');
+  assert(providers.body.data.length > 0 && providers.body.data.every((p) => p.slug), 'provider rows have no slug to link with');
+  const dir = await getPage('/providers');
+  const back = [...dir.text.matchAll(/href="\/models\?provider=([a-z0-9.-]+)"/g)].map((m) => m[1]);
+  assert(back.length >= 10, `the directory links back to only ${back.length} providers`);
+  assert(providers.body.data.some((p) => p.slug === back[0]), `the directory links to ${back[0]}, which is not a provider slug`);
+  const jumped = await getPage(`/models?provider=${back[0]}`);
+  assert(jumped.status === 200 && /matching/.test(jumped.text), 'following a directory link does not reach a filtered model list');
+});
+
+await check('the rankings board filters by model category and benchmark family', async () => {
+  // Requirement: "Filter by model categories and benchmarks". Benchmark chips existed; the categories
+  // were API-only, which is the same defect as a nav link to a page nobody built.
+  const all = await get('/api/rankings?limit=1');
+  const image = await get('/api/rankings?limit=1&type=IMAGE');
+  assert(all.body.meta.total > 0, 'no scored rows at all, is ingest finished?');
+  const page = await getPage('/rankings');
+  assert(/name="type"/.test(page.text), 'the board has no model-category control');
+  assert(/name="category"/.test(page.text), 'the board has no benchmark-family control');
+  // Apply must not lose the benchmark a chip selected: the form carries it as a hidden field.
+  const oneBench = await getPage('/rankings?benchmark=aa_engineering');
+  assert(/<input type="hidden" name="benchmark" value="aa_engineering"/.test(oneBench.text), 'the category form drops the selected benchmark');
+  const filtered = await getPage('/rankings?category=reasoning');
+  const apiF = await get('/api/rankings?category=reasoning&limit=1');
+  assert(filtered.status === 200, `HTTP ${filtered.status}`);
+  assert(filtered.text.includes(`${apiF.body.meta.total} scored rows`), `page says something else than the API's ${apiF.body.meta.total} for category=reasoning`);
+  assert(image.body.meta.total === 0 || image.body.data[0].model.modelType === 'IMAGE', 'a type filter let a non-image row through');
+  const hidden = (await getPage('/rankings?category=reasoning&type=IMAGE')).status;
+  assert(hidden === 200, 'an empty combination should render the empty state, not crash');
+});
+
 console.log(`\n${pass} passed, ${fail.length} failed`);
 process.exit(fail.length ? 1 : 0);

@@ -1,6 +1,15 @@
 # OneAtlas — AI model discovery & intelligence platform
 
-Full Stack Engineer submission. **Live URL:** _fill in_ · **Repo:** _fill in_ · **Loom:** _fill in_
+
+Full Stack Engineer submission.
+
+| Submission item | State |
+|---|---|
+| Live URL | **pending** - the deploy path below is configured and documented, but it needs the author's Vercel and Neon accounts |
+| GitHub repository URL | **pending** - the tree is committed and clean; nothing is pushed until the author's own name and email are on the commits (see [Before you push](#before-you-push)) |
+| Loom, 5-10 min | **pending** - the walkthrough script is [Read this first](#read-this-first); the video is the author talking, not a generated asset |
+
+Everything else in this file is checked against the running app in this workspace, not against intent.
 
 ## What it is
 
@@ -17,7 +26,11 @@ Zod · PostgreSQL · Prisma. Vercel + Neon is the deploy target; nothing here ne
 Seven screens, ten API routes, one Postgres schema. **No client JavaScript in the pages**: filters,
 sorts, cursors and the compare selection are query strings submitted by native `<form>`s, so the URL
 is the state and every screen renders from the same service its endpoint does
-(`docs/decisions/0006-the-url-is-the-state.md`).
+(`docs/decisions/0006-the-url-is-the-state.md`)
+(`docs/decisions/0006-the-url-is-the-state.md`). The three reference platforms were studied before
+any of this was written, and the verdicts are in `docs/references.md`: what OpenRouter's data shape
+forced into the schema, what RouterPlus's quality-bar argument rules out of the UI, and why
+LiteLLM's static metadata file is the counter-example to the brief's one hard data rule.
 
 ## Run it
 
@@ -43,14 +56,15 @@ src/lib/ingest/persist.ts   idempotent upserts + IngestRun audit row
 src/lib/query.ts            filters + sort + keyset cursor, one definition of each
 src/lib/validation.ts       zod at every boundary
 src/lib/api.ts              response envelope, error mapping, cache policy
-src/app/api/*               ten endpoints, all under a versioned contract (see docs/DESIGN.md §API)
+src/app/api/*               ten endpoints, all under a versioned contract (see DESIGN.md §API)
 src/app/{models,rankings,…} the seven screens; server components only
 src/lib/services/*          the read side both the pages and the routes call — no page fetches /api
 src/lib/{present,format,page}.ts  row→JSON mapping, number/date display, searchParams→query
 src/components/ui.tsx       badges, empty/error states, pager
 tests/                      node:test over the pure layer: npm test
-scripts/smoke.mjs           18 contract checks against a running server, API *and* HTML
-docs/                       DESIGN.md, decisions/0001-0006, ui-brief.md, review-log.md
+scripts/smoke.mjs           24 contract checks against a running server, API *and* HTML
+docs/                       references.md, decisions/0001-0007, ui-brief.md, review-log.md, architecture.{html,svg}
+DESIGN.md (repo root)       the design document, §API included
 ```
 
 ## Screens
@@ -58,12 +72,12 @@ docs/                       DESIGN.md, decisions/0001-0006, ui-brief.md, review-
 | Route | Shows | Where its numbers come from |
 |---|---|---|
 | `/` | counters, coverage meters, benchmark coverage, cheapest tool-capable models, newest releases | `services/stats` + `listModels` |
-| `/models` | the table: search, type, lab, capabilities, context floor, price ceiling, free, hide-deprecated, 5 sorts, cursor paging | `services/catalogue.listModels` |
+| `/models` | the table: search, type, lab, **provider**, capabilities, context floor, price ceiling, free, hide-deprecated, 5 sorts, cursor paging, one × per active filter | `services/catalogue.listModels` |
 | `/models/{lab}/{slug}` | spec grid, description, **provider endpoints** (price, context, quant, p50 latency, 24 h uptime, cheapest marked), the catalogue price when no endpoint is mirrored, benchmark strip | `modelDetail` |
 | `/compare?ids=a,b` | attributes as rows, up to six models as columns, missing ids named | `compareModels` |
-| `/rankings` | leaderboard, benchmark chips, offset paging with a stated range | `rankings` |
+| `/rankings` | leaderboard, benchmark chips, model-category and benchmark-family selects, offset paging with a stated range | `rankings` |
 | `/labs`, `/labs/{slug}` | 60 labs by output; a lab's models plus a month-by-month release cadence | `listLabs`, `labDetail` |
-| `/providers` | providers having at least one endpoint listing: models, listings, cheapest/average/dearest price as a spread bar, avg latency and uptime with the sample size | `listProviders` |
+| `/providers` | providers having at least one endpoint listing: models, listings, cheapest/average/dearest price as a spread bar, avg latency and uptime with the sample size, each row linking to the models it serves | `listProviders` |
 | `/search?q=` | models / labs / providers in three groups | `globalSearch` |
 
 Filters live in the URL, so a filtered view is a link. Production timings on this machine, best of
@@ -172,6 +186,42 @@ python3 ~/.claude/skills/unslop-ui/scripts/count_tells.py --surface src
 #   node ~/.claude/skills/hallmark/scripts/sloplint.mjs src/app docs/architecture.html --tier floor
 ```
 
+## Deploy (Vercel + Neon), and what is left before submission
+
+The deploy target is the one the brief prefers, and nothing in here needs anything more than it:
+
+```bash
+# 1. Neon: create a project, copy the pooled connection string.
+# 2. Vercel: import the repo. Framework preset Next.js, which is already correct.
+#    Env vars:  DATABASE_URL (Neon pooled), plus INGEST_TOKEN (any long random string).
+# 3. Build command stays `npm run build`; add the migration to the build so schema and code
+#    arrive together:  prisma migrate deploy && prisma generate && next build
+# 4. Seed once, from the deployed URL:
+#    curl -X POST https://<app>/api/admin/ingest -H "x-ingest-token: $INGEST_TOKEN"
+#    then the endpoint pass:  ...  -H 'content-type: application/json' -d '{"endpoints":true}'
+# 5. A Vercel cron on /api/admin/ingest keeps the mirror fresh; the route is idempotent by
+#    construction (re-running it changed zero row counts - see the ingest block above).
+```
+
+Two decisions that make this deployable rather than demoable: `prisma generate` runs on
+`postinstall`, so a serverless build never sees a missing client; and every read path is a
+`force-dynamic` server component over a shared service, so there is no cached prerender holding a
+stale snapshot of a catalogue that changes daily.
+
+## Before you push
+
+Three things, all of them the author's, none of them automatable by a tool without making the
+submission dishonest:
+
+1. **Authorship.** The commits in this tree carry `OneAtlas Dev <dev@localhost>` because they were
+   made inside a sandbox. Before pushing, put your own identity on them -
+   `git config user.name`/`user.email`, then `git rebase --root --exec 'git commit --amend --reset-author --no-edit'`,
+   and check with `git log --format='%an <%ae>' | sort -u`.
+2. **`.env` stays out.** It is gitignored and untracked (`git ls-files | grep .env` must stay empty);
+   `.env.example` is the committed contract.
+3. **The three submission fields at the top of this file.** Live URL, repo URL, Loom. Fill them in;
+   do not delete the table, because it is the honest statement of what a reviewer gets.
+
 ## Known shortcuts and upgrade triggers
 
 Harvest with `grep -rn "shortcut:" src prisma`. Currently: default ingest writes one listing per
@@ -189,6 +239,10 @@ boundary:
 - **Decided and written by me:** the schema and migrations, the model×provider listing and its
   normalisation, the filter/sort/cursor query, the ingest pipeline, the API contracts, and the
   reasoning in `docs/decisions/`.
+- **Tool:** an AI agent (Arena.ai agent mode) pair-drove the implementation in one session. Every
+  file in this tree was read line by line and can be explained; `docs/decisions/` is the reasoning,
+  `docs/review-log.md` is the list of mistakes the agent made that the database and the lint gates
+  caught, which is the part worth asking about.
 - **Not used:** Lovable, Bolt.new, Base44, Replit AI app generation, Firebase Studio or Google AI
   Studio generated apps — or any prompt-to-app generator. No managed no-code runtime, hosted
   preview or one-shot scaffold was used. This is an ordinary Next.js + Prisma repository that runs
