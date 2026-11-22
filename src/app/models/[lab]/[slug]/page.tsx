@@ -4,6 +4,7 @@ import { modelDetail, similarModels } from '@/lib/services/catalogue';
 import { slugParamSchema } from '@/lib/validation';
 import { CapabilityTags, Meter, Section, StatRow } from '@/components/ui';
 import CostEstimator from '@/components/CostEstimator';
+import { AddToCompare } from '@/components/tray';
 import CopySnippet from '@/components/CopySnippet';
 import { contextLabel, dateLabel, msLabel, pctLabel, priceLabel, pricePair } from '@/lib/format';
 
@@ -187,6 +188,7 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
                 <p className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                   <span className="tag">{a.sharedCapabilities} shared capabilities</span>
                   <Link className="underline text-[var(--muted)]" href={`/compare?ids=${model.slug},${a.slug}`}>Compare</Link>
+                  <AddToCompare slug={a.slug} name={a.name} />
                 </p>
               </li>
             ))}

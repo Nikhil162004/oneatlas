@@ -188,6 +188,34 @@ h3 {
   font-size: 15px;
 }
 
+/* ⌘K palette: a dimmed page behind one panel. Colour only, no blur, no scale-in; the panel is a
+   card that happens to float. */
+.palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.72);
+  padding: 12vh 16px 16px;
+}
+.palette-panel {
+  max-width: 620px;
+  margin-inline: auto;
+}
+.palette-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  text-align: left;
+  color: var(--fg);
+}
+.palette-item[data-active='true'] {
+  background: var(--surface-2);
+}
+
 /* A copyable command (CopySnippet). Deliberately not `.code`: on a model page the first `.code`
    block is the record-as-JSON, and smoke compares it against the endpoint, so a curl line must
    never be able to impersonate it. */
@@ -835,7 +863,8 @@ tbody tr:has(.rowlink) {
 tbody tr:has(.rowlink) {
   cursor: pointer;
 }
-tbody tr:has(.rowlink) a:not(.rowlink) {
+tbody tr:has(.rowlink) a:not(.rowlink),
+tbody tr:has(.rowlink) button {
   position: relative;
   z-index: 2;
 }

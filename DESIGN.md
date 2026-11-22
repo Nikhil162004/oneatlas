@@ -32,7 +32,7 @@ compare screen cannot show "same model, cheaper elsewhere" — which is the prod
   models on `releaseDate`; labs and providers both have profile pages (models, prices, release cadence /
   reliability), and every directory row also links back to `/models?provider={slug}`, so the directory is a
   starting point and not a dead end |
-| 6 Product experience | shared nav, `GET /api/search` global lookup, responsive table, loading/empty/error states |
+| 6 Product experience | shared nav, `GET /api/search` global lookup (also the ⌘K palette: the same groups, keyboard-first), responsive table, loading/empty/error states; a compare tray (slugs in localStorage, resolved by `/api/models/compare` on /compare, never a second source of truth) collects picks from model rows and alternative cards |
 
 ## Data
 

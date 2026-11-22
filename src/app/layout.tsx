@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { Archivo } from 'next/font/google';
 import { getStats } from '@/lib/services/stats';
 import SiteSearch from '@/components/SiteSearch';
+import CommandPalette from '@/components/CommandPalette';
+import CompareTray from '@/components/tray';
 import './globals.css';
 
 /*
@@ -66,6 +68,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/search" className="py-2 text-[var(--muted)] hover:text-[var(--fg)] md:hidden">Search</Link>
             </nav>
             <SiteSearch />
+            <CommandPalette />
           </div>
         </header>
         <main id="main" className="shell py-8">{children}</main>
@@ -73,6 +76,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <span>OpenRouter public catalogue{mirrored ? `, mirrored ${mirrored}` : ''}{stats?.models ? ` · ${stats.models} models` : ''}</span>
           <Link className="underline" href="/api">JSON API</Link>
         </footer>
+        <CompareTray />
       </body>
     </html>
   );
