@@ -6,6 +6,7 @@ import SiteSearch from '@/components/SiteSearch';
 import CommandPalette from '@/components/CommandPalette';
 import ThemeToggle from '@/components/ThemeToggle';
 import NavLinks from '@/components/NavLinks';
+import Shortcuts from '@/components/Shortcuts';
 import CompareTray from '@/components/tray';
 import './globals.css';
 
@@ -122,6 +123,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <Link className="underline" href="/status">Ingest status</Link>
                 <Link className="underline" href="/changes">Change feed</Link>
                 <a className="underline" href="/changes.xml">RSS</a>
+                <span>Press <span className="num">?</span> anywhere for keyboard shortcuts</span>
               </p>
             </div>
             <nav aria-label="Explore">
@@ -156,6 +158,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         </footer>
         <CompareTray />
+        <Shortcuts />
       </body>
     </html>
   );

@@ -1061,3 +1061,44 @@ input[type='search']::-webkit-search-decoration {
     scroll-behavior: auto;
   }
 }
+
+/* Print: a screen is an app, but a model record should also survive as a one-page spec sheet.
+   Chrome, controls and anything fixed go; tables unspool to full width; the scheme inverts to
+   paper regardless of the reader's theme, because ink is the point. */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  :root,
+  :root[data-theme='light'] {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f2f2f2;
+    --fg: #000000;
+    --muted: #333333;
+    --faint: #555555;
+    --line: rgb(0 0 0 / 0.18);
+    --line-2: rgb(0 0 0 / 0.3);
+    --accent: #333333;
+    --accent-ink: #ffffff;
+  }
+  body {
+    background: #ffffff;
+    background-image: none;
+  }
+  header,
+  footer,
+  form,
+  button,
+  .chip,
+  .palette-backdrop,
+  .card.fixed {
+    display: none !important;
+  }
+  .tablewrap {
+    overflow: visible;
+  }
+  .shell {
+    max-width: none;
+  }
+}

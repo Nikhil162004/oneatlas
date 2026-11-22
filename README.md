@@ -23,7 +23,7 @@ screen through the API — there is no fixture array in the frontend.
 Next.js (App Router, server components) · React · TypeScript · TailwindCSS · Next.js route handlers ·
 Zod · PostgreSQL · Prisma. Vercel + Neon is the deploy target; nothing here needs anything else.
 
-Twenty-one screens, an API index page, twenty-two API routes, one Postgres schema. Every screen is
+Twenty-one screens, an API index page, twenty-three API routes, one Postgres schema. Every screen is
 server-rendered; the four with controls carry a client island that fetches the screen's own API
 and refreshes only its results region, so a filter click never reloads the page, while the URL
 stays the state (`docs/decisions/0008`). Every screen renders from the same service its endpoint does
@@ -88,6 +88,7 @@ DESIGN.md (repo root)       the design document, §API included
 | `/watchlist` | your watched models (slugs in this browser only): live cheapest prices and the latest recorded change each | `modelsBySlugs` via `GET /api/models/watchlist` |
 | `/collections`, `/collections/{slug}` | guided discovery: top reasoning, best free, longest context, cheapest vision/tools — computed rankings with printed criteria | `collectionDetail` |
 | `/finder` | three questions (task, budget, context) that build a filtered `/models` URL, with a live match count | `FinderExplorer` over `GET /api/models` |
+| `/models/{lab}/{slug}/feed.xml` | one model's recorded moves as RSS 2.0, linked from its History section | `modelHistory`, same rows as the page |
 | `/benchmarks/matrix` | most-scored models × most-populated benchmarks, best score per column flagged in its own direction | `benchmarkMatrix` |
 | `/releases` | every dated release grouped by month across all labs; undated models counted, not placed | `releaseTimeline` |
 | `/changes` | what moved between mirrors: price, spec and capability changes with the run that caused them | `changesFeed` |

@@ -236,7 +236,7 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
 
       {history && (
         <section>
-          <Section id="history" title="History" count={history.data.length} right={<small>recorded by the mirrors, newest first</small>} />
+          <Section id="history" title="History" count={history.data.length} right={<small>recorded by the mirrors, newest first · <a className="underline" href={`/models/${model.slug}/feed.xml`}>follow via RSS</a></small>} />
           {priceSeries.length >= 2 && (
             <div className="card card-tight mb-4">
               <p className="label">Input price across {priceSeries.length - 1} recorded {priceSeries.length === 2 ? 'change' : 'changes'}</p>

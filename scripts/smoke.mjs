@@ -458,6 +458,21 @@ await check('the benchmark matrix flags true column bests and releases group by 
   assert(api.text.includes('Try it'), 'playground missing from the API page');
 });
 
+await check('per-model RSS, the shortcuts hint and the print stylesheet ship', async () => {
+  const one = await get('/api/models?limit=1');
+  const slug = one.body.data[0].slug;
+  const feed = await getPage(`/models/${slug}/feed.xml`);
+  assert(feed.status === 200 && feed.text.includes('<rss') && feed.text.includes('changes'), 'per-model feed did not render');
+  assert((await getPage('/models/ghost-lab/ghost-model/feed.xml')).status === 404, 'ghost model feed should be a 404');
+  const home = await getPage('/');
+  assert(home.text.includes('keyboard shortcuts'), 'no shortcuts hint in the footer');
+  const cssHref = home.text.match(/\/_next\/static\/css\/[^"?]+\.css/)?.[0];
+  const sheet = await (await fetch(`${BASE}${cssHref}`)).text();
+  assert(sheet.includes('@media print'), 'no print stylesheet in the served CSS');
+  const modelPage = await getPage(`/models/${slug}`);
+  assert(modelPage.text.includes('follow via RSS'), 'model page does not link its feed');
+});
+
 await check('a catalogue price is not counted as a provider offer', async () => {
   // The 476 models ingested without --endpoints each carry one listing derived from their own
   // catalogue entry. Counting those as "providers" put a row called "Unknown provider" at the top of

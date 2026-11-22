@@ -34,6 +34,28 @@ export default function SearchExplorer({
   initialGroups: Groups | null;
   initialProblem: Problem;
 }) {
+  const [recent, setRecent] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      const raw = JSON.parse(window.localStorage.getItem('oneatlas:recent-searches') ?? '[]') as string[];
+      setRecent(Array.isArray(raw) ? raw.filter((x) => typeof x === 'string').slice(0, 6) : []);
+    } catch {
+      setRecent([]);
+    }
+  }, []);
+  const remember = useCallback((value: string) => {
+    const termValue = value.trim();
+    if (!termValue) return;
+    setRecent((prev) => {
+      const next = [termValue, ...prev.filter((x) => x.toLowerCase() !== termValue.toLowerCase())].slice(0, 6);
+      try {
+        window.localStorage.setItem('oneatlas:recent-searches', JSON.stringify(next));
+      } catch {
+        // Session-only memory is a degradation, not an error.
+      }
+      return next;
+    });
+  }, []);
   const [q, setQ] = useState(initialQ);
   const [term, setTerm] = useState(initialQ);
   const [groups, setGroups] = useState<Groups | null>(initialGroups);
@@ -98,6 +120,7 @@ export default function SearchExplorer({
         onSubmit={(e) => {
           e.preventDefault();
           if (debounce.current) clearTimeout(debounce.current);
+          remember(q);
           void load(q, true);
         }}
       >
@@ -121,6 +144,39 @@ export default function SearchExplorer({
         />
         <button className="btn btn-primary" type="submit">Search</button>
       </form>
+
+      {recent.length > 0 && (
+        <p className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="label">Recent</span>
+          {recent.map((term) => (
+            <button
+              key={term}
+              type="button"
+              className="chip"
+              onClick={() => {
+                setQ(term);
+                void load(term, true);
+              }}
+            >
+              {term}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              setRecent([]);
+              try {
+                window.localStorage.removeItem('oneatlas:recent-searches');
+              } catch {
+                // Nothing stored, nothing to clear.
+              }
+            }}
+          >
+            Clear
+          </button>
+        </p>
+      )}
 
       <span aria-live="polite" className="sr-only">{loading ? 'Searching' : ''}</span>
       <div className="results-live" data-loading={loading || undefined} aria-busy={loading || undefined}>

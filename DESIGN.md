@@ -118,6 +118,10 @@ The comparison table marks which rows actually differ, server-side, so the featu
 Everything that is not a value was deleted: no status pills, no icon tiles, no eyebrow labels, no
 entrance animation, no hover lift on a card.
 
+**Print is paper.** `@media print` inverts to white regardless of the reader's theme, hides the
+header, footer, forms, chips and buttons wholesale, and unspools tables to full width: a model
+record printed from the browser reads as a spec sheet, which is how the audience shares offline.
+
 ## Interaction, and the arithmetic it depends on
 
 Four things make a table feel like a product rather than a dump, and each one is a piece of arithmetic
