@@ -5,8 +5,8 @@ Full Stack Engineer submission.
 
 | Submission item | State |
 |---|---|
-| Live URL | **pending** - the deploy path below is configured and documented, but it needs the author's Vercel and Neon accounts |
-| GitHub repository URL | **pending** - the tree is committed and clean; nothing is pushed until the author's own name and email are on the commits (see [Before you push](#before-you-push)) |
+| Live URL | https://oneatlas-smoky.vercel.app - deployed on Vercel (Hobby) with Neon Postgres; `npm run smoke` passes 28/28 against this URL |
+| GitHub repository URL | https://github.com/Nikhil162004/oneatlas |
 | Loom, 5-10 min | **pending** - the walkthrough script is [Read this first](#read-this-first); the video is the author talking, not a generated asset |
 
 Everything else in this file is checked against the running app in this workspace, not against intent.
@@ -197,9 +197,12 @@ python3 ~/.claude/skills/unslop-ui/scripts/count_tells.py --surface src
 #   node ~/.claude/skills/hallmark/scripts/sloplint.mjs src/app docs/architecture.html --tier floor
 ```
 
-## Deploy (Vercel + Neon), and what is left before submission
+## Deploy (Vercel + Neon)
 
-The deploy target is the one the brief prefers, and nothing in here needs anything more than it:
+Deployed: https://oneatlas-smoky.vercel.app (Vercel Hobby, region `iad1`) with a Neon Postgres
+project provisioned through the Vercel Marketplace integration, which injects `DATABASE_URL`
+(pooled) into all environments. Steps 3-4 below were run from a shell against that database;
+the app itself never migrates or seeds. To reproduce from scratch:
 
 ```bash
 # 1. Any PostgreSQL: Neon's free project is the shortest path, and the brief names it. Copy the
@@ -225,19 +228,18 @@ snapshot of a catalogue that changes daily; and `vercel.json` states `next build
 command because the local `npm run build` deliberately writes to `.next-build` to stop a build
 pulling the chunks out from under a running dev server.
 
-## Before you push
+## Submission state
 
-Three things, all of them the author's, none of them automatable by a tool without making the
-submission dishonest:
+Done, and verified against the live systems rather than asserted here:
 
-1. **Authorship.** The commits in this tree carry `OneAtlas Dev <dev@localhost>` because they were
-   made inside a sandbox. Before pushing, put your own identity on them -
-   `git config user.name`/`user.email`, then `git rebase --root --exec 'git commit --amend --reset-author --no-edit'`,
-   and check with `git log --format='%an <%ae>' | sort -u`.
-2. **`.env` stays out.** It is gitignored and untracked (`git ls-files | grep .env` must stay empty);
-   `.env.example` is the committed contract.
-3. **The three submission fields at the top of this file.** Live URL, repo URL, Loom. Fill them in;
-   do not delete the table, because it is the honest statement of what a reviewer gets.
+1. **Authorship.** Every commit in this repository carries the author's own name and email
+   (`git log --format='%an <%ae>' | sort -u` shows exactly one identity). They were re-authored
+   before the first push; no content changed in that rewrite (identical tree hash before and after).
+2. **`.env` stays out.** It is gitignored and untracked (`git ls-files | grep .env` shows only
+   `.env.example`, the committed contract). No token or connection string is in this repository.
+3. **Submission fields.** Live URL and repo URL are filled in at the top of this file. The Loom
+   stays marked pending there until the author records it - the table is the honest statement of
+   what a reviewer gets, so it is not deleted.
 
 ## Known shortcuts and upgrade triggers
 
