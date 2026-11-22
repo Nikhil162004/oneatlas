@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OneAtlas — request and data flow</title>
+<style>
+  :root {
+    color-scheme: light;
+    /* Tokens first: sloplint's floor gate rejects colour literals in the rules, and it is right —
+       a palette you cannot change in one place is not a palette */
+    --paper: #faf8f5; --ink: #1c1b19; --muted: #6b6660; --line: #d8d2c8;
+    --surface: #ffffff; --tag: #efece6; --rule: #b8b2a8;
+    --link: #4a6fa5; --focal: #c2603f; --focal-paper: #fff8f4;
+  }
+  html, body { overflow-x: clip; }
+  body { margin:0; padding:32px; background:var(--paper); color:var(--ink);
+         font: 14px/1.5 ui-sans-serif, system-ui, "Helvetica Neue", sans-serif; }
+  figure { margin:0 auto; max-width:1040px; }
+  figcaption { margin-top:14px; color:var(--muted); font-size:13px; }
+  figcaption b { color:var(--ink); font-weight:600; }
+  svg { width:100%; height:auto; display:block; }
+  .node { fill:var(--surface); stroke:var(--line); stroke-width:1; }
+  .focal { stroke:var(--focal); stroke-width:1.5; fill:var(--focal-paper); }
+  .tag { fill:var(--tag); }
+  .tagtext { font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; fill:var(--muted); }
+  .label { font: 600 14px/1 ui-sans-serif, system-ui, sans-serif; fill:var(--ink); }
+  .sub { font: 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; fill:var(--muted); }
+  .muted { stroke:var(--rule); stroke-width:1; fill:none; }
+  .link { stroke:var(--link); stroke-width:1; fill:none; }
+  .accent { stroke:var(--focal); stroke-width:1.5; fill:none; }
+  .dash { stroke-dasharray:4 3; }
+  .elabel { font: 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; fill:var(--muted); }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1040 470" role="img" aria-labelledby="t d">
+  <title id="t">OneAtlas request and data flow</title>
+  <desc id="d">A browser request goes through a server component and the models route handler into the
+  query builder and Postgres. A separate ingest job normalises the upstream catalogue and upserts it
+  into the same database.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+    <marker id="l" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+    <marker id="c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+  </defs>
+
+  <!-- lane labels -->
+  <text class="tagtext" x="16" y="72">BROWSER</text>
+  <text class="tagtext" x="16" y="212">SERVER</text>
+  <text class="tagtext" x="16" y="372">DATA</text>
+
+  <!-- browser lane -->
+  <g>
+    <rect class="node" x="120" y="44" width="250" height="56" rx="6"/><rect class="node" x="121" y="45" width="248" height="54" rx="6"/>
+    <rect class="tag" x="132" y="54" width="34" height="14" rx="2"/><text class="tagtext" x="139" y="64">URL</text>
+    <text class="label" x="132" y="86">/models?sort=priceLow</text>
+  </g>
+  <g>
+    <rect class="node" x="430" y="44" width="250" height="56" rx="6"/><rect class="node" x="431" y="45" width="248" height="54" rx="6"/>
+    <rect class="tag" x="443" y="54" width="52" height="14" rx="2"/><text class="tagtext" x="450" y="64">RSC</text>
+    <text class="label" x="443" y="86">server component</text>
+  </g>
+  <g>
+    <rect class="node" x="740" y="44" width="250" height="56" rx="6"/><rect class="node" x="741" y="45" width="248" height="54" rx="6"/>
+    <rect class="tag" x="753" y="54" width="52" height="14" rx="2"/><text class="tagtext" x="760" y="64">HTTP</text>
+    <text class="label" x="753" y="86">GET /api/models</text>
+  </g>
+  <path class="link" d="M370 72 H424" marker-end="url(#l)"/>
+  <path class="link" d="M680 72 H734" marker-end="url(#l)"/>
+  <text class="elabel" x="382" y="64">reads</text>
+  <text class="elabel" x="692" y="64">fetch</text>
+
+  <!-- server lane -->
+  <g>
+    <rect class="node" x="740" y="184" width="250" height="56" rx="6"/><rect class="node" x="741" y="185" width="248" height="54" rx="6"/>
+    <rect class="tag" x="753" y="194" width="44" height="14" rx="2"/><text class="tagtext" x="760" y="204">ZOD</text>
+    <text class="label" x="753" y="226">listQuerySchema</text>
+  </g>
+  <g>
+    <rect class="focal" x="430" y="184" width="250" height="56" rx="6"/><rect class="focal" x="431" y="185" width="248" height="54" rx="6"/>
+    <rect class="tag" x="443" y="194" width="60" height="14" rx="2"/><text class="tagtext" x="450" y="204">SQL</text>
+    <text class="label" x="443" y="226">query.ts · SORT[key]</text>
+  </g>
+  <g>
+    <rect class="node" x="120" y="184" width="250" height="56" rx="6"/><rect class="node" x="121" y="185" width="248" height="54" rx="6"/>
+    <rect class="tag" x="132" y="194" width="52" height="14" rx="2"/><text class="tagtext" x="139" y="204">DRIVER</text>
+    <text class="label" x="132" y="226">$queryRawUnsafe</text>
+  </g>
+  <path class="muted" d="M865 100 V178" marker-end="url(#a)"/>
+  <path class="muted" d="M740 212 H686" marker-end="url(#a)"/>
+  <path class="accent" d="M430 212 H376" marker-end="url(#c)"/>
+  <text class="elabel" x="700" y="204">validated</text>
+  <text class="elabel" x="392" y="204">text + values</text>
+
+  <!-- data lane -->
+  <g>
+    <rect class="focal" x="430" y="344" width="250" height="66" rx="6"/><rect class="focal" x="431" y="345" width="248" height="64" rx="6"/>
+    <rect class="tag" x="443" y="354" width="80" height="14" rx="2"/><text class="tagtext" x="450" y="364">POSTGRES</text>
+    <text class="label" x="443" y="382">ModelListing</text>
+    <text class="sub" x="443" y="399">min(price) per model</text>
+  </g>
+  <g>
+    <rect class="node" x="120" y="344" width="250" height="66" rx="6"/><rect class="node" x="121" y="345" width="248" height="64" rx="6"/>
+    <rect class="tag" x="132" y="354" width="52" height="14" rx="2"/><text class="tagtext" x="139" y="364">SOURCE</text>
+    <text class="label" x="132" y="382">upstream catalogue</text>
+    <text class="sub" x="132" y="399">GET /models · 476 rows</text>
+  </g>
+  <g>
+    <rect class="node" x="740" y="344" width="250" height="66" rx="6"/><rect class="node" x="741" y="345" width="248" height="64" rx="6"/>
+    <rect class="tag" x="753" y="354" width="52" height="14" rx="2"/><text class="tagtext" x="760" y="364">JOB</text>
+    <text class="label" x="753" y="382">normalise → persist</text>
+    <text class="sub" x="753" y="399">idempotent upserts</text>
+  </g>
+  <path class="muted" d="M245 344 V246" marker-end="url(#a)"/>
+  <text class="elabel" x="252" y="300">keyset page</text>
+  <path class="muted" d="M370 377 H424" marker-end="url(#a)"/>
+  <text class="elabel" x="382" y="369">fetch</text>
+  <path class="muted dash" d="M740 377 H686" marker-end="url(#a)"/>
+  <text class="elabel" x="694" y="369">upsert</text>
+</svg>
+<figcaption>
+  <b>Request path and data path share one database.</b> The coral nodes are where the design lives:
+  the sort expression that ORDER BY and the cursor both read, and the listing table price is
+  aggregated from. Filters never reach SQL as text — they pass zod first, and the ingest writes the
+  same tables the page reads, so there is no second copy of the data anywhere.
+</figcaption>
+</figure>
+</body>
+</html>
