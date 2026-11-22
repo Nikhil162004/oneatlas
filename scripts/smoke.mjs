@@ -361,6 +361,19 @@ await check('benchmark profiles, the calculator seed and the sitemap come from t
   assert(home.text.includes('og:title'), 'no Open Graph title on the home page');
 });
 
+await check('the theme script ships and both schemes are declared in CSS', async () => {
+  const home = await getPage('/');
+  assert(home.text.includes('oneatlas:theme'), 'no theme init script in the document head');
+  assert(home.text.includes('Switch to'), 'no theme toggle in the header');
+  const css = await (await fetch(`${BASE}/_next/static/css/`)).text().catch(() => '');
+  const cssHref = home.text.match(/\/_next\/static\/css\/[^"?]+\.css/)?.[0];
+  assert(cssHref, 'no stylesheet linked');
+  const sheet = await (await fetch(`${BASE}${cssHref}`)).text();
+  assert(sheet.includes("data-theme='light'") || sheet.includes('data-theme=\"light\"') || sheet.includes('[data-theme=light]') || sheet.includes('data-theme'), 'stylesheet declares no light scheme');
+  assert(sheet.includes('#94a7d9'), 'dark accent missing from the stylesheet');
+  assert(sheet.includes('#4763ac'), 'light accent missing from the stylesheet');
+});
+
 await check('a catalogue price is not counted as a provider offer', async () => {
   // The 476 models ingested without --endpoints each carry one listing derived from their own
   // catalogue entry. Counting those as "providers" put a row called "Unknown provider" at the top of

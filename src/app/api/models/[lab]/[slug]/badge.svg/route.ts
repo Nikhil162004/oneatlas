@@ -25,9 +25,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ lab
   const rightW = Math.ceil(value.length * 6.6) + 14;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${leftW + rightW}" height="20" role="img" aria-label="${esc(`${label}: ${value}`)}">
   <rect width="${leftW}" height="20" rx="3" fill="#24292e"/>
-  <rect x="${leftW - 3}" width="${rightW + 3}" height="20" rx="3" fill="#74e0a4"/>
+  <rect x="${leftW - 3}" width="${rightW + 3}" height="20" rx="3" fill="#94a7d9"/>
   <text x="${leftW / 2}" y="14" text-anchor="middle" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11" fill="#ffffff">${esc(label)}</text>
-  <text x="${leftW + rightW / 2}" y="14" text-anchor="middle" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11" fill="#10231a">${esc(value)}</text>
+  <text x="${leftW + rightW / 2}" y="14" text-anchor="middle" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11" fill="#0b1120">${esc(value)}</text>
 </svg>
 `;
   return new Response(svg, {

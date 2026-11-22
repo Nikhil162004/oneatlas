@@ -14,17 +14,20 @@
   gate nobody can re-derive is decoration.
 */
 :root {
-  --bg: #08090b;
-  --surface: #0e1014;
-  --surface-2: #14171c;
-  --fg: #e8eaee;
-  --muted: #a4a8b2;
-  --faint: #8b8f9a;
-  --line: rgb(232 234 238 / 0.09);
-  --line-2: rgb(232 234 238 / 0.16);
-  --accent: #74e0a4;
-  --accent-ink: #04150c;
-  --warn: #e8b44c;
+  /* Ink navy and a desaturated indigo: a scheme that reads as considered rather than lit up.
+     The accent is muted on purpose — it has to sit next to prices all day without shouting —
+     and every colour below is dark enough (or light enough) to keep its text role at AA. */
+  --bg: #0a0c11;
+  --surface: #10141b;
+  --surface-2: #161c26;
+  --fg: #e8eaf0;
+  --muted: #a6aebd;
+  --faint: #8791a3;
+  --line: rgb(232 235 242 / 0.09);
+  --line-2: rgb(232 235 242 / 0.17);
+  --accent: #94a7d9;
+  --accent-ink: #0b1120;
+  --warn: #d9a94e;
 
   --font-body: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
   --font-num: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Menlo, monospace;
@@ -42,8 +45,27 @@
   --r: 8px;
   --r-sm: 6px;
   --hair: 1px solid var(--line);
-  --raise: 0 1px 2px rgb(0 0 0 / 0.05);
+  --raise: 0 1px 2px rgb(0 0 0 / 0.4);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The light theme is the same tokens with daylight values, nothing else: components never name
+   a colour, so [data-theme] on <html> reskins all fifteen screens at once. The accent deepens
+   rather than lightens — #94a7d9 on white would fail the contrast the dark theme passes. */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #ebeef3;
+  --fg: #171b24;
+  --muted: #4e586a;
+  --faint: #68738a;
+  --line: rgb(23 27 36 / 0.1);
+  --line-2: rgb(23 27 36 / 0.19);
+  --accent: #4763ac;
+  --accent-ink: #ffffff;
+  --warn: #96690f;
+  --raise: 0 1px 2px rgb(23 27 36 / 0.07);
 }
 
 /* Dark first, so the browser paints scrollbars, form controls, the datalist popup and the
@@ -75,8 +97,8 @@ body {
      min-height built on vh reads as a gap at the bottom. Two declarations, no feature test. */
   min-height: 100vh;
   min-height: 100svh;
-  -webkit-tap-highlight-color: rgb(232 234 238 / 0.08);
-  background-image: linear-gradient(to bottom, rgb(232 234 238 / 0.035), rgb(232 234 238 / 0) 420px);
+  -webkit-tap-highlight-color: color-mix(in srgb, var(--fg) 8%, transparent);
+  background-image: linear-gradient(to bottom, color-mix(in srgb, var(--fg) 3.5%, transparent), transparent 420px);
   font-synthesis-weight: none;
 }
 
@@ -281,6 +303,7 @@ h3 {
   border: var(--hair);
   border-radius: var(--r);
   padding: 16px;
+  box-shadow: var(--raise);
 }
 .card-tight {
   padding: 12px 16px;
@@ -430,7 +453,7 @@ a.card:hover,
   color: var(--faint);
 }
 .field:hover {
-  border-color: rgb(232 234 238 / 0.24);
+  border-color: color-mix(in srgb, var(--fg) 26%, transparent);
 }
 .field:focus {
   border-color: var(--accent);
@@ -459,6 +482,7 @@ a.card:hover,
 }
 .btn:hover {
   border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
 }
 .btn:active {
   transform: scale(0.98);
@@ -468,6 +492,11 @@ a.card:hover,
   color: var(--accent-ink);
   border-color: var(--accent);
   font-weight: 600;
+}
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--accent) 84%, black);
+  border-color: color-mix(in srgb, var(--accent) 84%, black);
+  color: var(--accent-ink);
 }
 
 /* A checkbox rendered as a chip. Still one input, still keyboard-operable, no JS: the checked state
@@ -747,7 +776,7 @@ tbody tr:last-child th {
     z-index: 3;
     background: var(--surface-2);
     /* The row border lives on the cell and scrolls away with it; a shadow at zero offset does not. */
-    box-shadow: 0 1px 0 rgb(232 234 238 / 0.13);
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--fg) 13%, transparent);
   }
 }
 

@@ -4,6 +4,7 @@ import { Archivo } from 'next/font/google';
 import { getStats } from '@/lib/services/stats';
 import SiteSearch from '@/components/SiteSearch';
 import CommandPalette from '@/components/CommandPalette';
+import ThemeToggle from '@/components/ThemeToggle';
 import CompareTray from '@/components/tray';
 import './globals.css';
 
@@ -18,16 +19,19 @@ const body = Archivo({ subsets: ['latin'], weight: ['400', '500', '600'], variab
 
 /*
   `viewportFit: cover` is what makes the safe-area insets in globals.css mean anything; without it
-  the browser keeps its own margin and `env(safe-area-inset-*)` is always 0. `colorScheme: dark` is
-  the meta twin of `color-scheme: dark`, and it is what keeps a phone from painting a white
-  overscroll page behind a black document.
+  the browser keeps its own margin and `env(safe-area-inset-*)` is always 0. `colorScheme` is
+  the meta twin of the CSS `color-scheme`, and it is what keeps a phone from painting a white
+  overscroll page behind a dark document (or the reverse, for light-theme readers).
 */
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  colorScheme: 'dark',
-  themeColor: '#08090b',
+  colorScheme: 'dark light',
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)', color: '#0a0c11' },
+    { media: '(prefers-color-scheme: light)', color: '#f4f5f7' },
+  ],
 };
 
 export const metadata: Metadata = {
@@ -69,7 +73,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : null;
 
   return (
-    <html lang="en" className={body.variable}>
+    <html lang="en" className={body.variable} suppressHydrationWarning>
+      <head>
+        {/* The stored theme (or the OS preference, first visit) must be on <html> before the
+            first paint, or every returning light-theme reader gets a dark flash. Blocking and
+            tiny on purpose; ThemeToggle owns the attribute from here on. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('oneatlas:theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.dataset.theme=t;}catch(e){}`,
+          }}
+        />
+      </head>
       <body>
         <a className="skip" href="#main">Skip to content</a>
         <header className="chrome sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--bg)]">
@@ -86,6 +100,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </nav>
             <SiteSearch />
             <CommandPalette />
+            <ThemeToggle />
           </div>
         </header>
         <main id="main" className="shell py-8">{children}</main>

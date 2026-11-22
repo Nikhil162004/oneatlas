@@ -72,8 +72,12 @@ same one `GET /api/models` accepts — `docs/decisions/0006`.
 
 **Tokens** (`src/app/globals.css`, and nowhere else): `--bg --surface --surface-2 --fg --muted
 --faint --line --line-2 --accent --accent-ink --warn --r --r-sm --hair --ease`. Depth is a surface
-step plus a hairline at 9% of the text colour: no shadows beyond `0 1px 2px rgb(0 0 0/.05)`, no
-glows, no hue-to-hue gradient, no blurred blob. Type is one webfont — Archivo at 400/500/600 — over
+step plus a hairline at 9% of the text colour: no shadows beyond `0 1px 2px` at low alpha, no
+glows, no hue-to-hue gradient, no blurred blob. The palette is ink navy with a desaturated indigo
+accent (`#94a7d9` on `#0a0c11`) — muted deliberately, since it sits next to prices all day — and a
+light theme (`docs/decisions/0010`) re-declares the same tokens under `:root[data-theme='light']`
+with the accent deepened to `#4763ac`, so the reskin is one attribute and no component names a
+colour. Type is one webfont — Archivo at 400/500/600 — over
 the platform mono stack for figures; nothing goes heavier than 600 because hierarchy is size and
 colour, not weight. Sizes are 12/13/15/17/18/24/34 (plus 40/44 for the two display figures), spacing
 4/8/12/16/24/32/48, one easing curve
@@ -98,8 +102,8 @@ unlabelled value is this pattern's silent failure.
 
 Touch and browser defaults: 44px targets and 16px field text under `pointer: coarse` (iOS zooms the
 page when a focused input is smaller than 16px, and that zoom is what makes a form feel broken);
-`color-scheme: dark` plus `theme-color` so a phone does not paint a white overscroll page behind a
-black document; `100svh` instead of `100vh`; `env(safe-area-inset-*)` gutters with
+`color-scheme` (dark by default, light under the theme attribute) plus per-scheme `theme-color` so
+a phone does not paint a white overscroll page behind a dark document, or the reverse; `100svh` instead of `100vh`; `env(safe-area-inset-*)` gutters with
 `viewport-fit=cover`; `touch-action: manipulation` on pressable controls; `overscroll-behavior-x:
 contain` and thin dark scrollbars on anything that does scroll sideways; `scroll-padding` so
 `#providers` lands below the sticky header, with `scroll-behavior: smooth` off under
