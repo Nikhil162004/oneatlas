@@ -9,7 +9,10 @@ const esc = (v: string) =>
  * GET /changes.xml — the change feed as RSS 2.0, so a mirror moving a price can arrive in a
  * reader instead of waiting to be visited. Same rows, same order as GET /api/changes; the feed
  * is generated per request from the database, not written to disk by the ingest, so it can never
- * be a stale copy of the feed it describes.
+ * be a stale copy of the feed it describes. Served as application/xml rather than
+ * application/rss+xml: Blink refuses to apply the browser stylesheet to feed MIME types, and
+ * readers sniff the <rss> content either way, so the generic type is what lets a human open
+ * the feed and a reader keep polling it.
  */
 export async function GET(request: Request) {
   const base = new URL(request.url).origin;
@@ -22,6 +25,7 @@ export async function GET(request: Request) {
     })
     .join('\n');
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/feed.xsl"?>
 <rss version="2.0">
   <channel>
     <title>OneAtlas changes</title>
@@ -32,6 +36,6 @@ ${items}
 </rss>
 `;
   return new Response(xml, {
-    headers: { 'content-type': 'application/rss+xml; charset=utf-8', 'cache-control': 'private, no-store' },
+    headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'private, no-store' },
   });
 }

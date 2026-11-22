@@ -155,8 +155,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <p className="label">For developers</p>
               <ul className="mt-2 space-y-1.5 text-[var(--muted)]">
                 <li><Link className="hover:text-[var(--fg)]" href="/api">JSON API</Link></li>
-                <li><a className="hover:text-[var(--fg)]" href={`${SITE}/api/openapi.json`}>OpenAPI document</a></li>
-                <li><a className="hover:text-[var(--fg)]" href={`${SITE}/api/status`}>API status (JSON)</a></li>
+                <li><Link className="hover:text-[var(--fg)]" href="/openapi">OpenAPI document</Link></li>
+                <li><Link className="hover:text-[var(--fg)]" href="/status/json">API status (JSON)</Link></li>
                 <li><a className="hover:text-[var(--fg)]" href={`${SITE}/sitemap.xml`}>Sitemap</a></li>
               </ul>
             </nav>

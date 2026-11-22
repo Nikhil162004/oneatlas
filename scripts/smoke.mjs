@@ -473,6 +473,24 @@ await check('per-model RSS, the shortcuts hint and the print stylesheet ship', a
   assert(modelPage.text.includes('follow via RSS'), 'model page does not link its feed');
 });
 
+await check('footer documents render for humans, not just tools', async () => {
+  const home = await getPage('/');
+  assert(home.text.includes('href="/openapi"'), 'footer still points at the raw spec file');
+  assert(home.text.includes('href="/status/json"'), 'footer still points at the raw status file');
+  const oa = await getPage('/openapi');
+  assert(oa.status === 200 && oa.text.includes('&quot;openapi&quot;'), 'spec viewer did not render the document');
+  const sj = await getPage('/status/json');
+  assert(sj.status === 200 && sj.text.includes('&quot;counts&quot;'), 'status viewer did not render the envelope');
+  const sm = await getPage('/sitemap.xml');
+  assert(sm.text.includes('<?xml-stylesheet') && sm.text.includes('/sitemap.xsl'), 'sitemap carries no browser stylesheet');
+  const sx = await getPage('/sitemap.xsl');
+  assert(sx.status === 200 && sx.text.includes('xsl:stylesheet'), 'sitemap stylesheet missing');
+  const rss = await getPage('/changes.xml');
+  assert(rss.text.includes('/feed.xsl'), 'change feed carries no browser stylesheet');
+  const fx = await getPage('/feed.xsl');
+  assert(fx.status === 200 && fx.text.includes('xsl:stylesheet'), 'feed stylesheet missing');
+});
+
 await check('a catalogue price is not counted as a provider offer', async () => {
   // The 476 models ingested without --endpoints each carry one listing derived from their own
   // catalogue entry. Counting those as "providers" put a row called "Unknown provider" at the top of

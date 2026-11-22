@@ -9,6 +9,8 @@ const esc = (v: string) =>
  * GET /models/{lab}/{slug}/feed.xml — one model's recorded moves as RSS 2.0: follow a single
  * model's prices in a reader instead of the whole firehose at /changes.xml. Same ChangeEvent
  * rows the History section renders, so the feed and the page cannot tell different stories.
+ * Content type follows /changes.xml: application/xml, so browsers apply /feed.xsl (Blink
+ * ignores the stylesheet on feed MIME types) while readers sniff the RSS content as usual.
  */
 export async function GET(request: Request, { params }: { params: Promise<{ lab: string; slug: string }> }) {
   const { lab, slug } = await params;
@@ -24,6 +26,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ lab:
     })
     .join('\n');
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/feed.xsl"?>
 <rss version="2.0">
   <channel>
     <title>OneAtlas: ${esc(model.name)} changes</title>
@@ -34,6 +37,6 @@ ${items}
 </rss>
 `;
   return new Response(xml, {
-    headers: { 'content-type': 'application/rss+xml; charset=utf-8', 'cache-control': 'private, no-store' },
+    headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'private, no-store' },
   });
 }

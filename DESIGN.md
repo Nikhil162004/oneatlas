@@ -122,6 +122,13 @@ entrance animation, no hover lift on a card.
 header, footer, forms, chips and buttons wholesale, and unspools tables to full width: a model
 record printed from the browser reads as a spec sheet, which is how the audience shares offline.
 
+**Machine documents render for humans.** The footer never sends a browser to a bare file: the
+OpenAPI document and the API-status envelope have readable viewer pages (`/openapi`,
+`/status/json`) with the raw file one click away for tools, and the XML documents carry
+stylesheets (`/sitemap.xsl`, `/feed.xsl`) so opening one shows a page, not a download prompt.
+The feeds are served as `application/xml` for the same reason: Blink will not apply a
+stylesheet to a feed MIME type, while readers sniff the RSS content regardless.
+
 ## Interaction, and the arithmetic it depends on
 
 Four things make a table feel like a product rather than a dump, and each one is a piece of arithmetic

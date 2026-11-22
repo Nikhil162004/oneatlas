@@ -23,7 +23,7 @@ screen through the API — there is no fixture array in the frontend.
 Next.js (App Router, server components) · React · TypeScript · TailwindCSS · Next.js route handlers ·
 Zod · PostgreSQL · Prisma. Vercel + Neon is the deploy target; nothing here needs anything else.
 
-Twenty-one screens, an API index page, twenty-three API routes, one Postgres schema. Every screen is
+Twenty-three screens, an API index page, twenty-three API routes, one Postgres schema. Every screen is
 server-rendered; the four with controls carry a client island that fetches the screen's own API
 and refreshes only its results region, so a filter click never reloads the page, while the URL
 stays the state (`docs/decisions/0008`). Every screen renders from the same service its endpoint does
@@ -93,6 +93,8 @@ DESIGN.md (repo root)       the design document, §API included
 | `/releases` | every dated release grouped by month across all labs; undated models counted, not placed | `releaseTimeline` |
 | `/changes` | what moved between mirrors: price, spec and capability changes with the run that caused them | `changesFeed` |
 | `/status` | ingest runs, last successful mirror, catalogue counts — whether the daily refresh is alive | `ingestStatus` |
+| `/openapi` | the OpenAPI document rendered for reading; the raw file stays at `/api/openapi.json` for tools | `openApiSpec` (the same object the route serves) |
+| `/status/json` | the `/api/status` envelope rendered for reading, so the footer link shows a page instead of downloading a file | `ingestStatus` |
 
 Filters live in the URL, so a filtered view is a link. Production timings on this machine, best of
 five: `/models` 25 ms, `/rankings` 23 ms, `/providers` 24 ms, `/labs` 11 ms, a model page 12 ms —
