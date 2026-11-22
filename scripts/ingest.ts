@@ -56,6 +56,13 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('ingest failed:', err instanceof Error ? err.message : err);
+  const message = err instanceof Error ? err.message : String(err);
+  // Prisma answers a missing env var with a validation dump and code frames. The one thing the
+  // reader needs is the fix, so check for it before anything touches the database.
+  if (/Environment variable not found: DATABASE_URL|P1012/.test(message)) {
+    console.error('ingest failed: DATABASE_URL is not set. Run `cp .env.example .env` and point it at Postgres.');
+    process.exit(1);
+  }
+  console.error('ingest failed:', message.split('\n').filter((l) => l.trim()).slice(0, 6).join('\n  '));
   process.exit(1);
 });

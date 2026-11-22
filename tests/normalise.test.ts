@@ -74,13 +74,14 @@ test('a free model is free; a model with no published price is not', () => {
 
 test('one listing per endpoint, and provider identity is the pair, not the model', () => {
   const r = normalise([raw()], new Map([['acme/widget-1', [
-    { name: 'standard', provider_name: 'Acme API', pricing: { prompt: '0.0000005', completion: '0.0000025' }, context_length: 131072, quantization: 'int4', uptime_last_1d: 0.9987, latency_last_30m: 812.6 },
-    { name: 'fast', provider_name: 'Acme Fast', pricing: { prompt: '0.000001', completion: '0.000005' }, context_length: 65536, max_completion_tokens: 4096 },
+    { name: 'standard', provider_name: 'Acme API', pricing: { prompt: '0.0000005', completion: '0.0000025' }, context_length: 131072, quantization: 'int4', uptime_last_1d: 99.4186046511628, latency_last_30m: null },
+    { name: 'fast', provider_name: 'Acme Fast', pricing: { prompt: '0.000001', completion: '0.000005' }, context_length: 65536, max_completion_tokens: 4096, uptime_last_1d: 100 },
   ]]]));
   assert.equal(r.listings.length, 2);
-  assert.equal(r.listings[0]!.uptimePct, '99.87'); // ratio in, percentage out
-  assert.equal(r.listings[0]!.latencyP50Ms, 813);
-  assert.equal(r.listings[1]!.uptimePct, null);
+  // Fixture values are the real upstream shapes: percentage 0..100 with long tails, latency null.
+  assert.equal(r.listings[0]!.uptimePct, '99.42');
+  assert.equal(r.listings[0]!.latencyP50Ms, null);
+  assert.equal(r.listings[1]!.uptimePct, '100.00');
   assert.equal(r.providers.size, 2);
   assert.equal(r.listings[0]!.modelSlug, 'acme/widget-1');
 });

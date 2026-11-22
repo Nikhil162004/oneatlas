@@ -41,6 +41,20 @@ test('a garbage cursor is ignored instead of throwing a 500', () => {
   assert.deepEqual(decodeCursor(encodeCursor('2026-11-07', 'x')), { v: '2026-11-07', id: 'x' });
 });
 
+test('non-text filters carry a cast, because raw params arrive as text', () => {
+  const { text } = buildList(q({ type: 'IMAGE', minContext: 100000, maxPrice: 5, lab: 'anthropic' }));
+  assert.match(text, /m\."modelType" = \$\d+::"ModelType"/, 'enum without a cast dies with 42883');
+  assert.match(text, /m\."contextWindow" >= \$\d+::int/);
+  assert.match(text, /a\."minPrompt" <= \$\d+::numeric/);
+  assert.match(text, /l\.slug = \$\d+::text/);
+});
+
+test('total describes the filtered set, so it is page 1 only', () => {
+  assert.match(buildList(q({})).text, /COUNT\(\*\) OVER \(\)::int AS total/);
+  const later = buildList(q({ cursor: encodeCursor('2026-11-07', 'x') }));
+  assert.match(later.text, /NULL AS total/, 'a window count behind a keyset predicate is not a total');
+});
+
 test('limit+1 is what the route reads to decide there is a next page', () => {
   const { values } = buildList(q({ limit: 25 }));
   assert.equal(values.at(-1), 26);

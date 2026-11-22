@@ -46,31 +46,44 @@ export function likeTerm(q: string) {
   return `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 }
 
+/*
+ * One pass over this model's listings for all three numbers. The first version also carried
+ * `array_agg(DISTINCT pv.name ORDER BY pv.name)` so the list could show who serves a model; EXPLAIN
+ * showed that costing a full Provider scan per row (loops = 106). The list shows a count and the
+ * detail page has the names, so the column is gone rather than indexed.
+ */
 const LISTING_AGGREGATE = `
   LEFT JOIN LATERAL (
-    SELECT COUNT(p.id)::int                              AS listings,
-           MIN(p."promptPer1M")                          AS "minPrompt",
-           MIN(p."completionPer1M")                      AS "minCompletion",
-           array_agg(DISTINCT pv.name ORDER BY pv.name)  AS providers
+    SELECT COUNT(*)::int                   AS listings,
+           COUNT(DISTINCT p."providerId")::int AS providers,
+           MIN(p."promptPer1M")            AS "minPrompt",
+           MIN(p."completionPer1M")        AS "minCompletion"
     FROM "ModelListing" p
-    JOIN "Provider" pv ON pv.id = p."providerId"
     WHERE p."modelId" = m.id
   ) a ON true`;
 
-/** All filters in one place, so list and ranking cannot drift apart. */
-function conditions(f: Partial<ListQuery>, p: (v: unknown) => string): string[] {
+/**
+ * All filters in one place, so list and ranking cannot drift apart.
+ *
+ * The casts are not decoration. `$queryRawUnsafe` sends every parameter as text, and Postgres will
+ * not compare text against an enum or an integer: `WHERE m."modelType" = $1` dies with
+ * `operator does not exist: "ModelType" = text` the moment a caller filters by type. Verified
+ * against a live database, caught by `npm run smoke`, invisible to a unit test that only reads the
+ * SQL text. Any new filter on a non-text column needs its cast here.
+ */
+function conditions(f: Partial<ListQuery>, p: (v: unknown, cast?: string) => string): string[] {
   const w: string[] = [];
   if (f.q) {
     const t = likeTerm(f.q);
     w.push(`(m."name" ILIKE ${p(t)} ESCAPE '\\' OR m."slug" ILIKE ${p(t)} ESCAPE '\\')`);
   }
-  if (f.lab) w.push(`l.slug = ${p(f.lab)}`);
+  if (f.lab) w.push(`l.slug = ${p(f.lab, 'text')}`);
   if (f.provider) {
     w.push(`EXISTS (SELECT 1 FROM "ModelListing" pe
                     JOIN "Provider" pve ON pve.id = pe."providerId"
-                    WHERE pe."modelId" = m.id AND pve.slug = ${p(f.provider)})`);
+                    WHERE pe."modelId" = m.id AND pve.slug = ${p(f.provider, 'text')})`);
   }
-  if (f.type) w.push(`m."modelType" = ${p(f.type)}`);
+  if (f.type) w.push(`m."modelType" = ${p(f.type, '"ModelType"')}`);
   for (const c of f.capabilities ?? []) {
     const col =
       c === 'reasoning' ? 'supportsReasoning'
@@ -80,8 +93,8 @@ function conditions(f: Partial<ListQuery>, p: (v: unknown) => string): string[] 
       : 'openWeights';
     w.push(`m."${col}" = true`);
   }
-  if (f.minContext != null) w.push(`m."contextWindow" >= ${p(f.minContext)}`);
-  if (f.maxPrice != null) w.push(`a."minPrompt" <= ${p(f.maxPrice)}`);
+  if (f.minContext != null) w.push(`m."contextWindow" >= ${p(f.minContext, 'int')}`);
+  if (f.maxPrice != null) w.push(`a."minPrompt" <= ${p(f.maxPrice, 'numeric')}`);
   if (f.free) w.push(`EXISTS (SELECT 1 FROM "ModelListing" pf WHERE pf."modelId" = m.id AND pf."isFree")`);
   if (f.hideDeprecated) w.push(`m."deprecatedAt" IS NULL`);
   return w;
@@ -89,7 +102,7 @@ function conditions(f: Partial<ListQuery>, p: (v: unknown) => string): string[] 
 
 export function buildList(f: ListQuery): Built {
   const values: unknown[] = [];
-  const p = (v: unknown) => `$${values.push(v)}`; // push, then hand back the index it landed at
+  const p = (v: unknown, cast?: string) => `$${values.push(v)}${cast ? `::${cast}` : ''}`;
 
   const where = conditions(f, p);
   const { expr, dir, cast } = sortOf(f.sort, f.dir);
@@ -107,13 +120,14 @@ export function buildList(f: ListQuery): Built {
            m."supportsReasoning", m."supportsToolCalling", m."supportsStructuredOutput",
            m."supportsVisionInput", m."openWeights",
            l.slug AS "labSlug", l.name AS "labName",
-           a.listings, a.providers,
+           COALESCE(a.listings, 0)::int  AS listings,
+           COALESCE(a.providers, 0)::int AS providers,
            a."minPrompt"::text     AS "minPrompt",
            a."minCompletion"::text AS "minCompletion",
            to_char(m."releaseDate", 'YYYY-MM-DD')   AS "releaseDate",
            to_char(m."deprecatedAt", 'YYYY-MM-DD')   AS "deprecatedAt",
            ${expr}::text                             AS "sortKey",
-           COUNT(*) OVER ()::int                     AS total
+           ${f.cursor ? 'NULL' : 'COUNT(*) OVER ()::int'} AS total
     FROM "Model" m
     JOIN "Lab" l ON l.id = m."labId"${LISTING_AGGREGATE}
     ${where.length ? `WHERE ${where.join('\n      AND ')}` : ''}
@@ -133,13 +147,13 @@ export function buildRanking(f: {
   offset: number;
 }): Built {
   const values: unknown[] = [];
-  const p = (v: unknown) => `$${values.push(v)}`;
+  const p = (v: unknown, cast?: string) => `$${values.push(v)}${cast ? `::${cast}` : ''}`;
 
   const where: string[] = [];
   if (f.benchmark) where.push(`b.slug = ${p(f.benchmark)}`);
   if (f.category) where.push(`b.category = ${p(f.category)}`);
-  if (f.type) where.push(`m."modelType" = ${p(f.type)}`);
-  if (f.minContext != null) where.push(`m."contextWindow" >= ${p(f.minContext)}`);
+  if (f.type) where.push(`m."modelType" = ${p(f.type, '"ModelType"')}`);
+  if (f.minContext != null) where.push(`m."contextWindow" >= ${p(f.minContext, 'int')}`);
   where.push(`m."deprecatedAt" IS NULL`);
 
   const sql = `

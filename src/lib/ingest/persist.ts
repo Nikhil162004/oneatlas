@@ -55,12 +55,26 @@ export async function persistCatalogue(data: Normalised, source: string): Promis
       await prisma.$transaction(part.map((m) => {
         const lab = labId.get(m.labSlug);
         if (!lab) throw new Error(`lab ${m.labSlug} missing after upsert (invariant broken)`);
-        const { labSlug, raw, ...rest } = m;
+        // Listed field by field, not spread from the row type: ModelRow also carries labSlug and
+        // labName, which belong to Lab and are not columns here. A spread turns a rename in the
+        // normaliser into 'Unknown argument' at 3am in an ingest run.
         const data = {
-          ...rest,
+          slug: m.slug,
+          name: m.name,
+          modelType: m.modelType,
+          contextWindow: m.contextWindow,
+          maxOutputTokens: m.maxOutputTokens,
+          inputModalities: m.inputModalities,
+          outputModalities: m.outputModalities,
+          supportsReasoning: m.supportsReasoning,
+          supportsToolCalling: m.supportsToolCalling,
+          supportsStructuredOutput: m.supportsStructuredOutput,
+          supportsVisionInput: m.supportsVisionInput,
+          openWeights: m.openWeights,
+          description: m.description,
           releaseDate: m.releaseDate ? new Date(m.releaseDate) : null,
           deprecatedAt: m.deprecatedAt ? new Date(m.deprecatedAt) : null,
-          raw: (raw ?? undefined) as Prisma.InputJsonValue,
+          raw: (m.raw ?? undefined) as Prisma.InputJsonValue,
           labId: lab,
         };
         return prisma.model.upsert({ where: { slug: m.slug }, create: data, update: data });
@@ -76,8 +90,20 @@ export async function persistCatalogue(data: Normalised, source: string): Promis
         const mid = modelId.get(l.modelSlug);
         const pid = providerId.get(l.providerSlug);
         if (!mid || !pid) return []; // its model or provider was rejected upstream: skip, don't orphan
-        const { modelSlug, providerSlug, ...rest } = l;
-        const data = { ...rest };
+        const data = {
+          endpointName: l.endpointName,
+          promptPer1M: l.promptPer1M,
+          completionPer1M: l.completionPer1M,
+          cacheReadPer1M: l.cacheReadPer1M,
+          contextWindow: l.contextWindow,
+          maxOutputTokens: l.maxOutputTokens,
+          quantization: l.quantization,
+          latencyP50Ms: l.latencyP50Ms,
+          throughputTps: l.throughputTps,
+          uptimePct: l.uptimePct,
+          isFree: l.isFree,
+          status: l.status,
+        };
         return [prisma.modelListing.upsert({
           where: { modelId_providerId_endpointName: { modelId: mid, providerId: pid, endpointName: l.endpointName } },
           create: { ...data, modelId: mid, providerId: pid },

@@ -291,7 +291,7 @@ export function normalise(models: RawModel[], endpoints: Map<string, RawEndpoint
           quantization: e.quantization ? String(e.quantization) : null,
           latencyP50Ms: roundOrNull(e.latency_last_30m),
           throughputTps: roundOrNull(e.throughput_last_30m),
-          uptimePct: percentOrNull(e.uptime_last_1d), // ratio 0..1 in, percentage string out
+          uptimePct: percentOrNull(e.uptime_last_1d),
           isFree: isZeroPrice(e.pricing),
           status: e.status ? String(e.status) : null,
         });
@@ -335,9 +335,18 @@ function roundOrNull(value: number | null | undefined): number | null {
   return value == null || !Number.isFinite(n) ? null : Math.round(n);
 }
 
-function percentOrNull(ratio: number | null | undefined): string | null {
-  const n = Number(ratio);
-  return ratio == null || !Number.isFinite(n) ? null : (n * 100).toFixed(2);
+/**
+ * Upstream sends uptime already as a percentage (observed 99.4186046511628, 100, null), so this is
+ * a rounding-and-clamp step, not a unit conversion. The column is Decimal(5,2), which tops out at
+ * 999.99 — the first version of this function multiplied by 100 because the field name suggested a
+ * 0..1 ratio, and the ingest died on `Out of range`. Clamping also means a source that starts
+ * sending a ratio lands at 100.00 and looks like a full-uptime provider, which is wrong in a
+ * *visible* way instead of a silent one.
+ */
+function percentOrNull(value: number | null | undefined): string | null {
+  const n = Number(value);
+  if (value == null || !Number.isFinite(n)) return null;
+  return Math.min(100, Math.max(0, n)).toFixed(2);
 }
 
 

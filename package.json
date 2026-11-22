@@ -17,12 +17,15 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "ingest": "tsx scripts/ingest.ts",
+    "ingest": "tsx --env-file=.env scripts/ingest.ts",
     "verify": "npm run typecheck && npm test",
-    "ingest:offline": "tsx scripts/ingest.ts --offline fixtures/or_models.json --dry"
+    "ingest:offline": "tsx --env-file-if-exists=.env scripts/ingest.ts --offline fixtures/or_models.json --dry",
+    "db:push": "prisma db push",
+    "db:counts": "tsx --env-file=.env scripts/counts.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "prisma": {
-    "seed": "tsx scripts/ingest.ts --limit 40"
+    "seed": "tsx --env-file=.env scripts/ingest.ts --limit 40"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
@@ -32,11 +35,12 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "4.3.5",
     "@types/node": "22.10.2",
     "@types/react": "19.0.2",
+    "embedded-postgres": "^18.7.0-beta.19",
     "prisma": "6.19.3",
     "tailwindcss": "4.3.5",
-    "@tailwindcss/postcss": "4.3.5",
     "tsx": "4.23.15",
     "typescript": "5.9.3"
   }

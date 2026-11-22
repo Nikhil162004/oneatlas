@@ -91,13 +91,15 @@ export type ListRow = {
   labSlug: string;
   labName: string;
   listings: number;
-  providers: string[] | null;
+  providers: number;
   minPrompt: string | null;
   minCompletion: string | null;
   releaseDate: string | null;
   deprecatedAt: string | null;
   sortKey: string | null;
-  total: number;
+  /** NULL on keyed pages by design (see query.ts). Kept nullable so a route cannot turn "unknown"
+   *  into "zero results" — the mistake `?? 0` makes silently. */
+  total: number | null;
 };
 
 const num = (v: string | null) => (v === null || v === undefined || v === '' ? null : Number(v));
@@ -121,7 +123,8 @@ export function presentRow(r: ListRow) {
     // null, not 0: "we do not know this price" and "this is free" are different claims, and the
     // Free filter and the price sort both depend on the difference.
     pricing: { per1M: { prompt: num(r.minPrompt), completion: num(r.minCompletion) }, free: num(r.minPrompt) === 0 },
-    providers: r.providers ?? [],
+    // A count on the list, names on the detail page: see the note on LISTING_AGGREGATE in query.ts.
+    providerCount: r.providers,
     listingCount: r.listings,
     releaseDate: r.releaseDate,
     deprecatedAt: r.deprecatedAt,

@@ -22,8 +22,11 @@ export const GET = route(async function modelsList(request: Request) {
   const page = hasMore ? rows.slice(0, parsed.data.limit) : rows;
   const last = page[page.length - 1];
 
+  // A window count rides on a row, so an empty page carries no number with it. An empty *first*
+  // page proves the filtered set is empty (0 is knowable); an empty page after a cursor does not
+  // (it could just be past the end), so that one stays null instead of guessing.
   return ok(page.map(presentRow), {
-    total: page[0]?.total ?? 0,
+    total: page[0]?.total ?? (parsed.data.cursor ? null : 0),
     limit: parsed.data.limit,
     sort: parsed.data.sort,
     dir: parsed.data.dir ?? undefined,

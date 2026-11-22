@@ -69,11 +69,30 @@ node tools/.../sloplint.mjs --tier floor  2 findings left, both skipped on purpo
 npx impeccable detect src/app             no findings in regex mode
 ```
 
-**Not verified here, and you must run it:** anything needing a database (`prisma migrate deploy`,
-the real `EXPLAIN` plan, the ingest write path against Postgres) and the browser-grade scans
-(`impeccable detect http://localhost:3000`, `sloplint --render`) — this sandbox has no Postgres and
-no Chrome, so claiming those would be a guess. See `docs/review-log.md` for every finding, the two
-bugs the tools caught in my own code, and why each skip is a decision rather than an oversight.
+Ran against a real database afterwards (embedded Postgres 18.7 on port 55432, `node scripts/pg.mjs`):
+
+```
+npx prisma migrate deploy                       applied 20261121000000_init (incl. pg_trgm indexes)
+npm run ingest                                  476 models, 60 labs, 7 benchmarks, 756 scores, 0 issues
+npm run ingest -- --limit 120 --endpoints         120 models -> 378 listings across 75 providers
+re-ran the identical ingest                       row counts unchanged  -> idempotency proven
+npm run smoke                                   12/12 against the dev server
+npm run explain                                 see below
+```
+
+`EXPLAIN (ANALYZE, BUFFERS)` on `GET /api/models` page 1, unfiltered, 476 models: **3.25 ms**,
+top-N heapsort over 26 of 476 rows, `Seq Scan on "Model"` (476 rows is below any index threshold —
+the plan is right, not lazy). With `type=IMAGE&capabilities=tools,vision&minContext=100000`:
+**0.21 ms**, `Index Scan using "Model_modelType_releaseDate_idx"`. The first measurement also caught a
+real cost: `array_agg(DISTINCT provider name)` was doing a full `Provider` scan per model (`loops=106`),
+so that column was deleted from the list query instead of indexed — the list shows a count, the
+detail page shows names.
+
+**Still not verified, and you must run it:** the browser-grade scans (`npx impeccable detect
+http://localhost:3000`, `sloplint --render`) and the Vercel + Neon deployment itself — this sandbox
+has no Chrome and no Vercel access. See `docs/review-log.md` for every finding, the four bugs the
+database and the linters caught in my own code, and why each skip is a decision rather than an
+oversight.
 
 Architecture: ![request and data flow](docs/architecture.svg) — also `docs/architecture.html`.
 
