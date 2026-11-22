@@ -160,7 +160,7 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
       )}
 
       <p className="num text-xs text-[var(--faint)]">
-        JSON: <Link className="underline" href={`/api/models/${model.slug}`}>/api/models/{model.slug}</Link>
+        JSON: <a className="underline" href={`/api/models/${model.slug}`}>/api/models/{model.slug}</a>
       </p>
     </div>
   );

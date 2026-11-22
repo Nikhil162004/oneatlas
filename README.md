@@ -62,7 +62,8 @@ src/lib/services/*          the read side both the pages and the routes call —
 src/lib/{present,format,page}.ts  row→JSON mapping, number/date display, searchParams→query
 src/components/ui.tsx       badges, empty/error states, pager
 tests/                      node:test over the pure layer: npm test
-scripts/smoke.mjs           24 contract checks against a running server, API *and* HTML
+scripts/smoke.mjs           25 contract checks against a running server, API *and* HTML
+scripts/linkcheck.mjs       no <Link> may point at a route handler (see docs/review-log.md)
 docs/                       references.md, decisions/0001-0007, ui-brief.md, review-log.md, architecture.{html,svg}
 DESIGN.md (repo root)       the design document, §API included
 ```
@@ -71,7 +72,7 @@ DESIGN.md (repo root)       the design document, §API included
 
 | Route | Shows | Where its numbers come from |
 |---|---|---|
-| `/` | counters, coverage meters, benchmark coverage, cheapest tool-capable models, newest releases | `services/stats` + `listModels` |
+| `/` | counters, coverage meters, benchmark coverage, cheapest tool-capable models, newest releases; the JSON entry points are plain `<a>`s, because a route handler is a document, not a page | `services/stats` + `listModels` |
 | `/models` | the table: search, type, lab, **provider**, capabilities, context floor, price ceiling, free, hide-deprecated, 5 sorts, cursor paging, one × per active filter | `services/catalogue.listModels` |
 | `/models/{lab}/{slug}` | spec grid, description, **provider endpoints** (price, context, quant, p50 latency, 24 h uptime, cheapest marked), the catalogue price when no endpoint is mirrored, benchmark strip | `modelDetail` |
 | `/compare?ids=a,b` | attributes as rows, up to six models as columns, missing ids named | `compareModels` |
@@ -151,8 +152,9 @@ npx prisma migrate deploy                       applied 20261121000000_init (inc
 npm run ingest                                  476 models, 60 labs, 7 benchmarks, 756 scores, 0 issues
 npm run ingest -- --limit 120 --endpoints         120 models -> 378 listings across 75 providers
 re-ran the identical ingest                       row counts unchanged  -> idempotency proven
-npm run smoke                                   22/22 against the dev server
-NEXT_DIST_DIR=.next-build npx next start        22/22 again against the production build
+npm run smoke                                   25/25 against the dev server
+NEXT_DIST_DIR=.next-build npx next start        25/25 again against the production build
+npm run lint:links                              no <Link> points at /api/*
 npm run explain                                 see below
 ```
 

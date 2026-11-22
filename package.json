@@ -24,7 +24,8 @@
     "smoke": "node scripts/smoke.mjs",
     "lint:design": "npx --yes impeccable@latest detect src/app",
     "clean": "rm -rf .next .next-build",
-    "lint:screens": "node scripts/design-scan.mjs"
+    "lint:screens": "node scripts/design-scan.mjs",
+    "lint:links": "node scripts/linkcheck.mjs"
   },
   "prisma": {
     "seed": "tsx --env-file=.env scripts/ingest.ts --offline fixtures/or_models_full.json --limit 40"

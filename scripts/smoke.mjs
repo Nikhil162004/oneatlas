@@ -364,5 +364,26 @@ await check('the rankings board filters by model category and benchmark family',
   assert(hidden === 200, 'an empty combination should render the empty state, not crash');
 });
 
+await check('every link to an API route resolves as a document, from every screen', async () => {
+  // The complaint was "Get the JSON does nothing", and the cause was a <Link> soft-navigating to a
+  // route handler. lint:links guards the markup; this guards the other half of the promise - that the
+  // href each screen advertises really answers, and answers as JSON, through the same path a browser
+  // takes. A link to a 404 or to an HTML error page is caught here, not on someone's laptop.
+  const seen = new Set();
+  for (const path of ['/', '/models', '/providers', '/rankings', '/labs', '/models/anthropic/claude-fable-5.2']) {
+    const page = await getPage(path);
+    const hrefs = [...page.text.matchAll(/href="(\/api\/[a-z0-9/._-]+)"/gi)].map((m) => m[1]);
+    for (const href of new Set(hrefs)) {
+      const res = await fetch(`${BASE}${href}`, { cache: 'no-store' });
+      const type = res.headers.get('content-type') ?? '';
+      assert(res.status === 200, `${path} links to ${href}, which answered ${res.status}`);
+      assert(type.includes('application/json'), `${path} links to ${href}, which answered ${type}, not JSON`);
+      await res.body?.cancel();
+      seen.add(href);
+    }
+  }
+  assert(seen.size >= 2, `only ${seen.size} distinct API links found across six screens - did they all disappear?`);
+});
+
 console.log(`\n${pass} passed, ${fail.length} failed`);
 process.exit(fail.length ? 1 : 0);
