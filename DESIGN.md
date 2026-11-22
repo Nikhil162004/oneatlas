@@ -22,10 +22,11 @@ compare screen cannot show "same model, cheaper elsewhere" — which is the prod
 | 1 Discovery & search | `GET /api/models` with `q, lab, provider, type, capabilities[], minContext, maxPrice, free, hideDeprecated, sort, dir, cursor, limit`; SQL filters + `pg_trgm` ILIKE; `/models` screen exposes all of it: every parameter has a control in the one GET form (lab and
   provider as datalists), and each active one shows as a removable chip above the table |
 | 2 Detail pages | `GET /api/models/{lab}/{slug}`; specs, per-provider price table, modalities/capabilities, benchmark strip,
-  a cost estimator that re-prices every provider for a token count, and a copyable curl for the record |
+  a cost estimator that re-prices every provider for a token count, a copyable curl for the record, and
+  alternatives (same type, shared capabilities, cheapest first; also `GET /api/models/{lab}/{slug}/alternatives`) |
 | 3 Comparison | `GET /api/models/compare?ids=` (2–6, GET so the selection is shareable); row-oriented matrix; any model
   can be found and added from the picker's search, not only recent releases |
-| 4 Rankings & benchmarks | `GET /api/rankings?benchmark&category&type&minContext`; the screen offers benchmark chips plus
+| 4 Rankings & benchmarks | `GET /api/rankings?benchmark&category&type&minContext&view` (`view=value` ranks score per dollar of cheapest input); the screen offers benchmark chips plus
   model-category and benchmark-family selects; offset paging by rank |
 | 5 Labs & providers | `GET /api/labs`, `/api/labs/{slug}`, `/api/providers`, `/api/providers/{slug}`; releases derived by grouping
   models on `releaseDate`; labs and providers both have profile pages (models, prices, release cadence /

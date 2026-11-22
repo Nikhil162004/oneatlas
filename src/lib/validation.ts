@@ -47,6 +47,7 @@ export const slugParamSchema = z.object({
 });
 
 export const rankingQuerySchema = z.object({
+  view: z.enum(['score', 'value']).optional(),
   benchmark: z.string().trim().max(120).optional(),
   category: z.string().trim().max(60).optional(),
   type: z.enum(MODEL_TYPES).optional(),

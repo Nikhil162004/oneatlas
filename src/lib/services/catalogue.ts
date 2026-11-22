@@ -93,6 +93,57 @@ export async function modelDetail(lab: string, slug: string) {
   };
 }
 
+/**
+ * Alternatives to one model: same type first, shared capabilities next, then cheapest, so the
+ * list reads as "the same job, other trade-offs" rather than a random sample of the catalogue.
+ * Overlap is counted over the five capability flags both models carry; price is each model's
+ * cheapest listing from any provider, the number the rest of the app already ranks by.
+ */
+export async function similarModels(lab: string, slug: string, limit = 6) {
+  const target = await modelDetail(lab, slug);
+  if (!target) return null;
+  const flags = ['reasoning', 'tools', 'structuredOutput', 'visionInput', 'openWeights'] as const;
+  const wanted = flags.filter((f) => target.capabilities[f]);
+
+  const candidates = await prisma.model.findMany({
+    where: { modelType: target.modelType, slug: { not: target.slug } },
+    take: 120,
+    orderBy: { releaseDate: 'desc' },
+    select: {
+      slug: true, name: true, modelType: true, contextWindow: true,
+      supportsReasoning: true, supportsToolCalling: true, supportsStructuredOutput: true,
+      supportsVisionInput: true, openWeights: true,
+      lab: { select: { name: true } },
+      listings: { take: 1, orderBy: { promptPer1M: 'asc' }, select: { promptPer1M: true } },
+      _count: { select: { listings: true } },
+    },
+  });
+
+  const capsOf = (m: (typeof candidates)[number]) => ({
+    reasoning: m.supportsReasoning, tools: m.supportsToolCalling, structuredOutput: m.supportsStructuredOutput,
+    visionInput: m.supportsVisionInput, openWeights: m.openWeights,
+  });
+
+  return {
+    target: { slug: target.slug, name: target.name },
+    data: candidates
+      .map((m) => {
+        const caps = capsOf(m);
+        return {
+          slug: m.slug, name: m.name, modelType: m.modelType, lab: m.lab,
+          contextWindow: m.contextWindow, capabilities: caps,
+          sharedCapabilities: wanted.filter((f) => caps[f]).length,
+          cheapestPromptPer1M: money(m.listings[0]?.promptPer1M ?? null),
+          providerCount: m._count.listings,
+        };
+      })
+      .sort((a, b) =>
+        b.sharedCapabilities - a.sharedCapabilities ||
+        (a.cheapestPromptPer1M ?? Infinity) - (b.cheapestPromptPer1M ?? Infinity))
+      .slice(0, limit),
+  };
+}
+
 export type CompareModel = NonNullable<Awaited<ReturnType<typeof modelDetail>>>;
 
 export async function compareModels(slugs: string[]) {
@@ -153,6 +204,7 @@ type RankRow = {
   labSlug: string;
   labName: string;
   minPrompt: string | null;
+  value: string | null;
   total: number | null;
 };
 
@@ -161,6 +213,7 @@ export async function rankings(input: {
   category?: string;
   type?: string;
   minContext?: number;
+  view?: string;
   limit: number;
   offset: number;
 }) {
@@ -187,6 +240,7 @@ export async function rankings(input: {
         lab: { slug: r.labSlug, name: r.labName },
       },
       cheapestPromptPer1M: r.minPrompt === null ? null : Number(r.minPrompt),
+      value: r.value === null ? null : Number(r.value),
     })),
     meta: {
       total: Number(rows[0]?.total ?? 0),

@@ -151,6 +151,7 @@ export function buildRanking(f: {
   category?: string;
   type?: string;
   minContext?: number;
+  view?: string;
   limit: number;
   offset: number;
 }): Built {
@@ -163,10 +164,16 @@ export function buildRanking(f: {
   if (f.type) where.push(`m."modelType" = ${p(f.type, '"ModelType"')}`);
   if (f.minContext != null) where.push(`m."contextWindow" >= ${p(f.minContext, 'int')}`);
   where.push(`m."deprecatedAt" IS NULL`);
+  // Best value is a different ordering of the same rows, not a different dataset: score divided
+  // by the cheapest input price. Unpriced rows cannot be valued, so they leave the board here
+  // rather than ranking as if they were free.
+  const byValue = f.view === 'value';
+  if (byValue) where.push(`a."minPrompt" IS NOT NULL AND a."minPrompt" > 0`);
 
   const sql = `
     SELECT b.slug AS "benchmarkSlug", b.name AS "benchmarkName", b.category,
            s.score::text AS score,
+           (s.score / NULLIF(a."minPrompt", 0))::text AS value,
            m.id, m.slug, m.name, m."modelType", m."contextWindow",
            l.slug AS "labSlug", l.name AS "labName",
            a."minPrompt"::text AS "minPrompt",
@@ -179,7 +186,7 @@ export function buildRanking(f: {
       SELECT MIN(p."promptPer1M") AS "minPrompt" FROM "ModelListing" p WHERE p."modelId" = m.id
     ) a ON true
     WHERE ${where.join('\n      AND ')}
-    ORDER BY s.score DESC, m.id ASC
+    ORDER BY ${byValue ? `(s.score / a."minPrompt") DESC` : 's.score DESC'}, m.id ASC
     LIMIT ${p(f.limit)} OFFSET ${p(f.offset)}`;
 
   return { text: sql, values };

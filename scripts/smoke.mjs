@@ -259,6 +259,24 @@ await check('GET /api/providers/{slug} and its page list the same supported mode
   assert((await getPage('/providers/ghost-provider')).status === 404, 'unknown provider page should be a 404 page');
 });
 
+await check('GET /api/rankings?view=value ranks by score per dollar, and alternatives stay on-type', async () => {
+  const { status, body } = await get('/api/rankings?view=value&limit=10');
+  assert(status === 200, `HTTP ${status}`);
+  assert(body.data.length >= 5, 'value board is nearly empty');
+  assert(body.data.every((r) => r.cheapestPromptPer1M > 0 && r.value !== null), 'an unpriced row was valued');
+  for (let i = 1; i < body.data.length; i++) {
+    assert(body.data[i - 1].value >= body.data[i].value, 'value board is not ordered by score per dollar');
+  }
+  const one = await get('/api/models?limit=1');
+  const slug = one.body.data[0].slug;
+  const alt = await get(`/api/models/${slug}/alternatives`);
+  assert(alt.status === 200 && alt.body.data.length > 0, 'no alternatives returned');
+  assert(alt.body.data.every((a) => a.slug !== slug), 'a model is its own alternative');
+  assert(alt.body.data.every((a) => a.modelType === one.body.data[0].modelType), 'an alternative is a different type');
+  const page = await getPage('/rankings?view=value');
+  assert(page.text.includes('Best value'), 'the rankings page does not offer the value board');
+});
+
 await check('a catalogue price is not counted as a provider offer', async () => {
   // The 476 models ingested without --endpoints each carry one listing derived from their own
   // catalogue entry. Counting those as "providers" put a row called "Unknown provider" at the top of

@@ -44,6 +44,7 @@ export default function RankingsExplorer({
   const request = useRef<{ id: number; ctrl: AbortController | null }>({ id: 0, ctrl: null });
 
   const benchmark = applied.get('benchmark') ?? undefined;
+  const view = applied.get('view') === 'value' ? 'value' : 'score';
 
   const load = useCallback(async (next: URLSearchParams, push: boolean) => {
     const id = ++request.current.id;
@@ -85,7 +86,7 @@ export default function RankingsExplorer({
 
   /** Benchmark chips and the offset pager are anchors whose href is the next query. */
   const followQueryLink = (e: React.MouseEvent) => {
-    const anchor = (e.target as HTMLElement).closest<HTMLAnchorElement>('nav[aria-label="Benchmarks"] a.chip, nav[aria-label="Pages"] a.btn');
+    const anchor = (e.target as HTMLElement).closest<HTMLAnchorElement>('nav[aria-label="Benchmarks"] a.chip, nav[aria-label="Pages"] a.btn, nav[aria-label="Board view"] a.chip');
     if (!anchor) return;
     e.preventDefault();
     void load(queryFromAnchor(anchor), true);
@@ -96,6 +97,12 @@ export default function RankingsExplorer({
       <p className="num mt-1 text-sm text-[var(--muted)]">
         {meta.total ? `${meta.total} scored rows` : 'No scores mirrored yet'} · one row per model and benchmark
       </p>
+
+      <nav aria-label="Board view" className="flex flex-wrap items-center gap-2">
+        <a className="chip" href={hrefWith(raw, { view: null, offset: null })} aria-current={view === 'score' ? 'true' : undefined}>Top scores</a>
+        <a className="chip" href={hrefWith(raw, { view: 'value', offset: null })} aria-current={view === 'value' ? 'true' : undefined}>Best value</a>
+        {view === 'value' && <span className="text-xs text-[var(--faint)]">score per dollar of cheapest input (per 1M), unpriced models excluded</span>}
+      </nav>
 
       <nav aria-label="Benchmarks" className="flex flex-wrap gap-2">
         <a className="chip" href={hrefWith(raw, { benchmark: null, offset: null })} aria-current={!benchmark ? 'true' : undefined}>
@@ -185,6 +192,7 @@ export default function RankingsExplorer({
                     <th scope="col">Model</th>
                     <th scope="col">Benchmark</th>
                     <th scope="col" className="text-right">Score</th>
+                    {view === 'value' && <th scope="col" className="text-right">Value</th>}
                     <th scope="col" className="w-40">Against the leader</th>
                     <th scope="col" className="text-right">Context</th>
                     <th scope="col" className="text-right">Cheapest input</th>
@@ -205,6 +213,7 @@ export default function RankingsExplorer({
                       </td>
                       <td data-label="Benchmark" className="text-[var(--muted)]">{r.benchmark.name}</td>
                       <td data-label="Score" className="num text-right font-medium">{r.score.toFixed(2)}</td>
+                      {view === 'value' && <td data-label="Value" className="num text-right">{r.value !== null ? r.value.toFixed(0) : '—'}</td>}
                       <td data-label="Against the leader"><Meter value={r.score} max={top} /></td>
                       <td data-label="Context" className="num text-right">{contextLabel(r.model.contextWindow)}</td>
                       <td data-label="Cheapest input" className="num text-right">{priceLabel(r.cheapestPromptPer1M)}</td>

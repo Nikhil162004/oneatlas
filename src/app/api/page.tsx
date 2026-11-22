@@ -20,6 +20,7 @@ type Endpoint = readonly [method: string, path: string, returns: string, params:
 const ENDPOINTS: readonly Endpoint[] = [
   ['GET', '/api/models', 'the catalogue: one row per model, with its cheapest price and how many providers serve it', 'q, lab, provider, type, capabilities, minContext, maxPrice, free, hideDeprecated, sort, dir, limit, cursor'],
   ['GET', '/api/models/{lab}/{slug}', 'one model, its per-provider listings, its scores', 'path only; the pair must match a mirrored slug'],
+  ['GET', '/api/models/{lab}/{slug}/alternatives', 'alternatives to one model: same type, shared capabilities, cheapest first', 'path only'],
   ['GET', '/api/models/compare', 'up to six models as one object, so a diff is possible without a client', 'ids=a,b (2–6, comma or repeated)'],
   ['GET', '/api/rankings', 'scored rows, best first, with the benchmark each row belongs to', 'benchmark, category, type, minContext, limit, offset'],
   ['GET', '/api/search', 'one mixed result set: models, labs and providers in a single pass', 'q, limit'],
@@ -50,7 +51,7 @@ export default async function ApiIndex() {
       <div>
         <h1>JSON API</h1>
         <p className="lede mt-2">
-          Eleven read routes over the same Postgres the screens read, and two guarded routes that refill it (one by hand, one on a schedule).
+          Twelve read routes over the same Postgres the screens read, and two guarded routes that refill it (one by hand, one on a schedule).
           Every page in this app and every endpoint here call the same service function, so the two
           cannot disagree about what a filter or a sort means.
         </p>

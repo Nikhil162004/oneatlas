@@ -37,6 +37,7 @@ export default function CompareExplorer({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [term, setTerm] = useState('');
+  const [onlyDiff, setOnlyDiff] = useState(false);
   const [found, setFound] = useState<ModelListItem[]>([]);
   const request = useRef<{ id: number; ctrl: AbortController | null }>({ id: 0, ctrl: null });
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -116,20 +117,34 @@ export default function CompareExplorer({
 
   const benchSlugs = [...new Set(rows.flatMap((r) => Object.keys(r.benchmarks)))];
   const differs = (values: string[]) => new Set(values).size > 1;
-  const attrs: Array<{ label: string; values: string[]; num?: boolean }> = [
+  // `raw` + `better` say what "best" means for a row; the flag is computed, never stored, so it
+  // cannot disagree with the numbers beside it. A row where everyone ties gets no flag.
+  type Attr = { label: string; values: string[]; num?: boolean; raw?: Array<number | null>; better?: 'high' | 'low'; best?: boolean[] };
+  const rawAttrs: Attr[] = [
     { label: 'Type', values: rows.map((m) => m.modelType.toLowerCase()) },
-    { label: 'Context', values: rows.map((m) => contextLabel(m.contextWindow)), num: true },
-    { label: 'Max output', values: rows.map((m) => contextLabel(m.maxOutputTokens)), num: true },
-    { label: 'Cheapest in / out per 1M', values: rows.map((m) => pricePair(m.cheapest.prompt, m.cheapest.completion)), num: true },
-    { label: 'Providers', values: rows.map((m) => String(m.providers.length)), num: true },
+    { label: 'Context', values: rows.map((m) => contextLabel(m.contextWindow)), num: true, raw: rows.map((m) => m.contextWindow), better: 'high' },
+    { label: 'Max output', values: rows.map((m) => contextLabel(m.maxOutputTokens)), num: true, raw: rows.map((m) => m.maxOutputTokens), better: 'high' },
+    { label: 'Cheapest in / out per 1M', values: rows.map((m) => pricePair(m.cheapest.prompt, m.cheapest.completion)), num: true, raw: rows.map((m) => m.cheapest.prompt), better: 'low' },
+    { label: 'Providers', values: rows.map((m) => String(m.providers.length)), num: true, raw: rows.map((m) => m.providers.length), better: 'high' },
     { label: 'Served by', values: rows.map((m) => (m.providers.length ? m.providers.slice(0, 4).map((p) => p.provider).join(', ') : '—')) },
-    { label: 'Released', values: rows.map((m) => dateLabel(m.releaseDate)), num: true },
+    { label: 'Released', values: rows.map((m) => dateLabel(m.releaseDate)), num: true, raw: rows.map((m) => (m.releaseDate ? Date.parse(m.releaseDate) : null)), better: 'high' },
     ...benchSlugs.map((b) => ({
       label: rows.find((r) => r.benchmarks[b])?.benchmarks[b]?.name ?? b,
       values: rows.map((m) => (m.benchmarks[b] ? m.benchmarks[b].score.toFixed(1) : '—')),
       num: true,
+      raw: rows.map((m) => m.benchmarks[b]?.score ?? null),
+      better: 'high' as const,
     })),
   ];
+  const attrs: Attr[] = rawAttrs.map((a) => {
+    if (!a.raw || !a.better) return a;
+    const vals = a.raw.filter((v): v is number => v !== null);
+    if (!vals.length || new Set(vals).size === 1) return { ...a, best: a.raw.map(() => false) };
+    const target = a.better === 'high' ? Math.max(...vals) : Math.min(...vals);
+    return { ...a, best: a.raw.map((v) => v !== null && v === target) };
+  });
+  const capsDiffer = differs(rows.map((m) => Object.entries(m.capabilities).filter(([, on]) => on).map(([k]) => k).join(',')));
+  const visibleAttrs = onlyDiff ? attrs.filter((a) => differs(a.values)) : attrs;
 
   return (
     <>
@@ -145,6 +160,12 @@ export default function CompareExplorer({
         {rows.length ? (
           <>
             <Section id="table" title="Side by side" count={rows.length} />
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <label className="chip">
+                <input type="checkbox" checked={onlyDiff} onChange={(e) => setOnlyDiff(e.target.checked)} /> only show differences
+              </label>
+              <span className="text-xs text-[var(--faint)]">the flag marks the best value in a row, where best is defined</span>
+            </div>
             <div className="tablewrap compare mt-4">
               <table className="text-sm">
                 <caption className="sr-only">Comparison table with one row per attribute and one column per model</caption>
@@ -172,22 +193,31 @@ export default function CompareExplorer({
                   </tr>
                 </thead>
                 <tbody>
-                  {attrs.map((a) => (
+                  {visibleAttrs.map((a) => (
                     <tr key={a.label}>
                       <th scope="row">{a.label}</th>
                       {a.values.map((v, i) => (
                         <td key={i} className={a.num ? 'num' : undefined} style={differs(a.values) ? { color: 'var(--fg)' } : { color: 'var(--muted)' }}>
                           {v}
+                          {a.best?.[i] && <span className="flag ml-1">best</span>}
                         </td>
                       ))}
                     </tr>
                   ))}
-                  <tr>
-                    <th scope="row">Capabilities</th>
-                    {rows.map((m) => (
-                      <td key={m.id}><CapabilityTags caps={m.capabilities} /></td>
-                    ))}
-                  </tr>
+                  {(!onlyDiff || capsDiffer) && (
+                    <tr>
+                      <th scope="row">Capabilities</th>
+                      {rows.map((m) => (
+                        <td key={m.id}><CapabilityTags caps={m.capabilities} /></td>
+                      ))}
+                    </tr>
+                  )}
+                  {onlyDiff && !visibleAttrs.length && !capsDiffer && (
+                    <tr>
+                      <th scope="row">Differences</th>
+                      <td colSpan={rows.length} className="text-[var(--muted)]">No compared attribute differs. Untick to see the full table.</td>
+                    </tr>
+                  )}
                   <tr>
                     <th scope="row">Build a link</th>
                     <td colSpan={rows.length} className="num break-all text-xs text-[var(--faint)]">/compare?ids={effective.map((p) => p.slug).join(',')}</td>

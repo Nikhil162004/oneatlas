@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { modelDetail } from '@/lib/services/catalogue';
+import { modelDetail, similarModels } from '@/lib/services/catalogue';
 import { slugParamSchema } from '@/lib/validation';
 import { CapabilityTags, Meter, Section, StatRow } from '@/components/ui';
 import CostEstimator from '@/components/CostEstimator';
@@ -40,6 +40,7 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
     : catalogue
       ? [{ provider: 'Catalogue listing (not a provider offer)', prompt: catalogue.per1M.prompt, completion: catalogue.per1M.completion, free: catalogue.free }]
       : [];
+  const similar = await similarModels(parsed.data.lab, parsed.data.slug).catch(() => null);
   const modalities = [
     ...(model.inputModalities ?? []).map((m) => `in: ${m}`),
     ...(model.outputModalities ?? []).map((m) => `out: ${m}`),
@@ -167,6 +168,26 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
                 </p>
                 <p className="mt-2"><Meter value={b.score} max={100} /></p>
                 <p className="mt-2 text-xs text-[var(--faint)]">{b.benchmark.category}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {similar && similar.data.length > 0 && (
+        <section>
+          <Section id="alternatives" title="Alternatives" count={similar.data.length} right={<small>same type, shared capabilities, cheapest first</small>} />
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {similar.data.map((a) => (
+              <li key={a.slug} className="card card-tight">
+                <Link className="font-medium leading-snug" href={`/models/${a.slug}`}>{a.name}</Link>
+                <p className="num mt-1 text-xs text-[var(--faint)]">
+                  {a.lab.name} · {contextLabel(a.contextWindow)} context · {priceLabel(a.cheapestPromptPer1M)} in per 1M
+                </p>
+                <p className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                  <span className="tag">{a.sharedCapabilities} shared capabilities</span>
+                  <Link className="underline text-[var(--muted)]" href={`/compare?ids=${model.slug},${a.slug}`}>Compare</Link>
+                </p>
               </li>
             ))}
           </ul>
