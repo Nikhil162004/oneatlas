@@ -80,14 +80,14 @@ tiles, eyebrow labels, status pills or entrance animation.
 ## Reading order for a reviewer
 
 1. `DESIGN.md` — scope, and the list of things deliberately not built.
-1a. `docs/decisions/0007` — why a listing records its own provenance, and the two wrong numbers that
-    happened before it did (`Unknown provider` top of the directory, `0.00%` average uptime).
-2. `docs/decisions/0001` — why `ModelListing` is the centre of the schema.
-3. `docs/decisions/0005` + `src/lib/query.ts` — the keyset cursor, and why one table owns "sorted".
-4. `tests/query.test.ts` — the placeholder-invariant test that keeps hand-built SQL honest.
-5. `docs/decisions/0003` — why search is `pg_trgm` and not Meilisearch.
-6. `docs/decisions/0006` — why the pages contain no JavaScript, and what that deleted.
-7. `scripts/smoke.mjs` — the checks that make "it works" a reproducible claim rather than a screenshot.
+2. `docs/decisions/0007` — why a listing records its own provenance, and the two wrong numbers the
+   product published before it did (`Unknown provider` at the top of the directory, `0.00%` averages).
+3. `docs/decisions/0001` — why `ModelListing` is the centre of the schema.
+4. `docs/decisions/0005` + `src/lib/query.ts` — the keyset cursor, and why one table owns "sorted".
+5. `tests/query.test.ts` — the placeholder-invariant test that keeps hand-built SQL honest.
+6. `docs/decisions/0003` — why search is `pg_trgm` and not Meilisearch.
+7. `docs/decisions/0006` — why the pages contain no JavaScript, and what that deleted.
+8. `scripts/smoke.mjs` — the checks that make "it works" a reproducible claim rather than a screenshot.
 
 ## Verify — what is actually green, and what is not
 
