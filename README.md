@@ -65,7 +65,7 @@ npx tsx scripts/ingest.ts --offline fixtures/or_models_full.json --dry
                                           7 benchmarks / 756 scores, 0 issues
 npx tsx scripts/ingest.ts --limit 12 --endpoints --dry
                                           12 models → 31 listings across 8 providers
-node tools/.../sloplint.mjs --tier floor  2 findings left, both skipped on purpose (see docs/review-log.md)
+Hallmark sloplint --tier floor      1 finding left, skipped on purpose (see docs/review-log.md)
 npx impeccable detect src/app             no findings in regex mode
 ```
 
@@ -98,7 +98,10 @@ Architecture: ![request and data flow](docs/architecture.svg) — also `docs/arc
 
 ```bash
 npm run verify    # tsc --noEmit && node --test
-npm run lint:ui   # Hallmark floor gate on the UI sources
+npm run lint:design   # impeccable detect, via npx (no install)
+# Hallmark's floor gate is not vendored here (it is a third-party skill). Run it from a checkout:
+#   npx skills add nutlope/hallmark -g
+#   node ~/.claude/skills/hallmark/scripts/sloplint.mjs src/app docs/architecture.html --tier floor
 ```
 
 ## Known shortcuts and upgrade triggers

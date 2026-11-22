@@ -10,7 +10,6 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint:ui": "node tools/sloplint.mjs src/app --scope app --tier floor",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
     "db:generate": "prisma generate",
@@ -22,7 +21,8 @@
     "ingest:offline": "tsx --env-file-if-exists=.env scripts/ingest.ts --offline fixtures/or_models.json --dry",
     "db:push": "prisma db push",
     "db:counts": "tsx --env-file=.env scripts/counts.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "lint:design": "npx --yes impeccable@latest detect src/app"
   },
   "prisma": {
     "seed": "tsx --env-file=.env scripts/ingest.ts --limit 40"

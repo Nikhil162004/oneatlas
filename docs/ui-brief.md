@@ -19,6 +19,7 @@ and a mobile layout that is designed rather than merely unwrapped. Data arrives 
 Plus `⌘K` global search over `/api/search`, built from a native `<dialog>` and one `<input>` — no
 palette library.
 
-Gate before you call any of this done: `npm run lint:ui` (Hallmark's floor tier: contrast, focus
-visible, reduced motion, nothing invented, no broken phone layout) and
-`npx impeccable detect src/app` — then fix what they report, or write down why not.
+Gate before you call any of this done: `npm run lint:design` (impeccable detect) and Hallmark's
+floor tier (`sloplint --tier floor`, from a `npx skills add nutlope/hallmark -g` checkout — it is a
+third-party skill, so it is not vendored into this repo). Contrast, focus visible, reduced motion,
+nothing invented, no broken phone layout. Then fix what they report, or write down why not.
