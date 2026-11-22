@@ -188,6 +188,21 @@ h3 {
   font-size: 15px;
 }
 
+/* A copyable command (CopySnippet). Deliberately not `.code`: on a model page the first `.code`
+   block is the record-as-JSON, and smoke compares it against the endpoint, so a curl line must
+   never be able to impersonate it. */
+.snippet {
+  margin: 0;
+  padding: 12px 16px;
+  border: var(--hair);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--muted);
+  font: 400 12px/1.55 var(--font-num);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
 /* A live region (docs/decisions/0008): while its replacement rows are in flight the current ones
    dim instead of blanking, so a filter click reads as "this table is refreshing", not as a new
    page arriving. Opacity only, no movement, and the old rows stay readable throughout. */

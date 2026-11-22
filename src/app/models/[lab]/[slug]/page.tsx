@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { modelDetail } from '@/lib/services/catalogue';
 import { slugParamSchema } from '@/lib/validation';
 import { CapabilityTags, Meter, Section, StatRow } from '@/components/ui';
+import CostEstimator from '@/components/CostEstimator';
+import CopySnippet from '@/components/CopySnippet';
 import { contextLabel, dateLabel, msLabel, pctLabel, priceLabel, pricePair } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -31,6 +33,13 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
   const endpoints = model.providers.filter((x) => x.fromEndpoint);
   const catalogue = model.providers.find((x) => !x.fromEndpoint) ?? null;
   const best = endpoints[0] ?? catalogue ?? null;
+  // The estimator prices endpoint listings; a catalogue-only model gets its listed rate,
+  // labelled as what it is rather than dressed up as a provider offer.
+  const costListings = endpoints.length
+    ? endpoints.map((p) => ({ provider: p.provider.name, prompt: p.per1M.prompt, completion: p.per1M.completion, free: p.free }))
+    : catalogue
+      ? [{ provider: 'Catalogue listing (not a provider offer)', prompt: catalogue.per1M.prompt, completion: catalogue.per1M.completion, free: catalogue.free }]
+      : [];
   const modalities = [
     ...(model.inputModalities ?? []).map((m) => `in: ${m}`),
     ...(model.outputModalities ?? []).map((m) => `out: ${m}`),
@@ -140,6 +149,11 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
         )}
       </section>
 
+      <section>
+        <Section id="cost" title="Estimate the bill" right={<small>rates from the listings above, re-ranked as you type</small>} />
+        <CostEstimator listings={costListings} />
+      </section>
+
       {model.benchmarks.length > 0 && (
         <section>
           <Section id="bench" title="Benchmarks" count={model.benchmarks.length} />
@@ -158,6 +172,14 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
           </ul>
         </section>
       )}
+
+      <section>
+        <Section id="use-api" title="Use via API" right={<small>this record, as JSON</small>} />
+        <CopySnippet path={`/api/models/${model.slug}`} />
+        <p className="mt-2 text-xs text-[var(--faint)]">
+          One endpoint of eleven read routes; the whole surface is documented at <Link className="underline" href="/api">/api</Link>.
+        </p>
+      </section>
 
       {/* The same object, serialised, where a reader can actually see it. Raw JSON is a document and
           some contexts will not paint one; this page already called the service the endpoint calls,
