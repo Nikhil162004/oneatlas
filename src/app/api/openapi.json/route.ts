@@ -82,7 +82,7 @@ const spec = {
     '/models/watchlist': {
       get: {
         summary: "live rows for a reader's watched slugs, with the latest recorded change each",
-        parameters: [param('ids', str('a,b — up to 50 full slugs, comma-separated or repeated'), true)],
+        parameters: [param('ids', str('a,b , up to 50 full slugs, comma-separated or repeated'), true)],
         responses: ok('watched rows in request order; unknown slugs in meta.missing'),
       },
     },
@@ -107,6 +107,10 @@ const spec = {
     '/benchmarks': { get: { summary: 'every benchmark: scored-model count and current top model', responses: ok('benchmark rows') } },
     '/benchmarks/{slug}': {
       get: { summary: 'one benchmark and every scored model, in its own direction', parameters: [pathParam('slug', 'benchmark slug')], responses: { ...ok('the benchmark profile'), '404': { description: 'no such benchmark' } } },
+    },
+    '/collections': { get: { summary: 'the guided-discovery sets with leaders, computed from live rows', responses: ok('collection summaries') } },
+    '/collections/{slug}': {
+      get: { summary: 'one collection, ranked, each row carrying the fact that placed it', parameters: [pathParam('slug', 'collection slug')], responses: { ...ok('the ranked collection'), '404': { description: 'no such collection' } } },
     },
     '/labs': { get: { summary: 'labs by how much they ship', parameters: [param('limit', num('page size'))], responses: ok('labs with model counts') } },
     '/labs/{slug}': {

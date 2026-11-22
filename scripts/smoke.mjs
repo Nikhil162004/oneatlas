@@ -387,6 +387,26 @@ await check('the watchlist API resolves slugs to live rows and names the missing
   assert(empty.status === 200 && empty.body.data.length === 0, 'empty watchlist should be an empty array, not an error');
 });
 
+await check('collections rank by their printed criteria and the finder maps to filters', async () => {
+  const list = await get('/api/collections');
+  assert(list.status === 200 && list.body.data.length === 5, 'expected five collections');
+  const longest = await get('/api/collections/longest-context');
+  assert(longest.status === 200 && longest.body.data.rows.length > 0, 'longest-context is empty');
+  const ctx = longest.body.data.rows.map((r) => r.contextWindow);
+  assert(JSON.stringify(ctx) === JSON.stringify([...ctx].sort((a, b) => b - a)), 'longest-context is not ordered by context');
+  const free = await get('/api/collections/best-free');
+  assert(free.body.data.rows.every((r) => r.prompt === 0), 'a priced model appears in best-free');
+  const vision = await get('/api/collections/cheapest-vision');
+  assert(vision.body.data.rows.every((r) => r.capabilities.visionInput), 'a blind model appears in cheapest-vision');
+  const prices = vision.body.data.rows.map((r) => r.prompt ?? Infinity);
+  assert(JSON.stringify(prices) === JSON.stringify([...prices].sort((a, b) => a - b)), 'cheapest-vision is not ordered by price');
+  assert((await get('/api/collections/ghost-set')).status === 404, 'ghost collection should be a 404');
+  const page = await getPage('/collections/longest-context');
+  assert(page.status === 200 && page.text.includes('Longest context'), 'collection page did not render');
+  const finder = await getPage('/finder');
+  assert(finder.status === 200 && finder.text.includes('Model finder'), 'finder did not render');
+});
+
 await check('a catalogue price is not counted as a provider offer', async () => {
   // The 476 models ingested without --endpoints each carry one listing derived from their own
   // catalogue entry. Counting those as "providers" put a row called "Unknown provider" at the top of

@@ -9,7 +9,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../db';
 import { buildList, buildRanking, encodeCursor } from '../query';
-import type { ListQuery } from '../validation';
+import { listQuerySchema, type ListQuery } from '../validation';
 import { presentRow, type ListRow } from '../present';
 import { pctChange } from '../ingest/diff';
 
@@ -677,4 +677,99 @@ export async function modelsBySlugs(slugs: string[]) {
       };
     });
   return { data, meta: { requested: clean.length, missing: clean.filter((s) => !bySlug.has(s)) } };
+}
+
+/**
+ * Collections: editorial questions answered by query, never by a stored list. Each definition
+ * is a named, explainable ordering over live rows (capabilities, price, context, benchmark
+ * scores), so a collection cannot go stale the way a hand-picked list does — tomorrow's mirror
+ * re-ranks tonight's page. The criteria string is part of the contract: a reader can reproduce
+ * every collection from the /models filters, and the page says how.
+ */
+export type CollectionDef = { slug: string; title: string; blurb: string; criteria: string };
+
+export const COLLECTION_DEFS: CollectionDef[] = [
+  { slug: 'top-reasoning', title: 'Top reasoning models', blurb: 'The highest scores on reasoning-category benchmarks.', criteria: 'best score on a reasoning-category benchmark, one row per model' },
+  { slug: 'best-free', title: 'Best free models', blurb: 'Free to call, ranked by how much context you get.', criteria: 'cheapest input price is $0, ordered by context window' },
+  { slug: 'longest-context', title: 'Longest context', blurb: 'The biggest working memory in the catalogue.', criteria: 'ordered by context window, largest first' },
+  { slug: 'cheapest-vision', title: 'Cheapest vision', blurb: 'Image-understanding models, cheapest input first.', criteria: 'vision input capability, ordered by cheapest input price' },
+  { slug: 'cheapest-tools', title: 'Cheapest tool calling', blurb: 'Function-calling models for agents, cheapest input first.', criteria: 'tool calling capability, ordered by cheapest input price' },
+];
+
+const collectionRow = (m: Awaited<ReturnType<typeof listModels>>['data'][number], reason: string) => ({
+  slug: m.slug,
+  name: m.name,
+  lab: m.lab,
+  modelType: m.modelType,
+  contextWindow: m.contextWindow,
+  capabilities: m.capabilities,
+  prompt: m.pricing.per1M.prompt,
+  completion: m.pricing.per1M.completion,
+  reason,
+});
+
+export async function collectionDetail(slug: string) {
+  const def = COLLECTION_DEFS.find((d) => d.slug === slug);
+  if (!def) return null;
+  let rows: ReturnType<typeof collectionRow>[] = [];
+  if (slug === 'top-reasoning') {
+    const scores = await prisma.benchmarkScore.findMany({
+      where: { benchmark: { category: 'reasoning' } },
+      orderBy: { score: 'desc' },
+      take: 200,
+      include: {
+        benchmark: { select: { name: true } },
+        model: { select: { slug: true, name: true, modelType: true, contextWindow: true, lab: { select: { slug: true, name: true } }, listings: { select: { promptPer1M: true, completionPer1M: true } } } },
+      },
+    });
+    const seen = new Set<string>();
+    for (const s of scores) {
+      if (seen.has(s.model.slug) || rows.length >= 20) continue;
+      seen.add(s.model.slug);
+      const prompts = s.model.listings.map((l) => l.promptPer1M).filter((v) => v !== null).map(Number);
+      const completions = s.model.listings.map((l) => l.completionPer1M).filter((v) => v !== null).map(Number);
+      rows.push({
+        slug: s.model.slug,
+        name: s.model.name,
+        lab: s.model.lab,
+        modelType: s.model.modelType,
+        contextWindow: s.model.contextWindow,
+        capabilities: { reasoning: true, tools: false, structuredOutput: false, visionInput: false, openWeights: false },
+        prompt: prompts.length ? Math.min(...prompts) : null,
+        completion: completions.length ? Math.min(...completions) : null,
+        reason: `${s.benchmark.name}: ${Number(s.score)}`,
+      });
+    }
+  } else {
+    const query =
+      slug === 'best-free'
+        ? { free: 'true', sort: 'context', limit: 20 }
+        : slug === 'longest-context'
+          ? { sort: 'context', limit: 20 }
+          : slug === 'cheapest-vision'
+            ? { capabilities: 'vision', sort: 'priceLow', limit: 20 }
+            : { capabilities: 'tools', sort: 'priceLow', limit: 20 };
+    const { data } = await listModels(listQuerySchema.parse(query));
+    rows = data.map((m) =>
+      collectionRow(
+        m,
+        slug === 'best-free'
+          ? 'free'
+          : slug === 'longest-context'
+            ? `${m.contextWindow.toLocaleString('en-US')} tokens`
+            : `${m.pricing.per1M.prompt !== null ? `$${m.pricing.per1M.prompt}` : 'price n/a'} in per 1M`,
+      ),
+    );
+  }
+  return { ...def, rows };
+}
+
+export async function listCollections() {
+  const data = await Promise.all(
+    COLLECTION_DEFS.map(async (def) => {
+      const detail = await collectionDetail(def.slug);
+      return { ...def, count: detail?.rows.length ?? 0, leader: detail?.rows[0]?.name ?? null };
+    }),
+  );
+  return { data, meta: { total: data.length } };
 }

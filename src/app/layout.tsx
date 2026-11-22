@@ -59,6 +59,8 @@ const NAV = [
   ['/compare', 'Compare'],
   ['/calculator', 'Calculator'],
   ['/watchlist', 'Watchlist'],
+  ['/collections', 'Collections'],
+  ['/finder', 'Finder'],
   ['/labs', 'Labs'],
   ['/providers', 'Providers'],
   ['/changes', 'Changes'],
