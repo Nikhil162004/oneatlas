@@ -31,6 +31,18 @@ const assert = (cond, msg) => { if (!cond) throw new Error(msg); };
 
 console.log(`smoke against ${BASE}`);
 
+await check('GET / renders numbers, not an error page', async () => {
+  // Added after a real outage: every /api/* check stayed green while / 500'd, because a page
+  // failure and an API failure have different causes. Green API + broken HTML is the state a
+  // reviewer sees first, so smoke has to look at the HTML.
+  const res = await fetch(`${BASE}/`, { cache: 'no-store' });
+  const html = await res.text();
+  assert(res.status === 200, `HTTP ${res.status}`);
+  assert(/Every AI model, compared/.test(html), 'hero copy missing, is the page rendering at all?');
+  assert(!/Application error|digest|MODULE_NOT_FOUND/.test(html), 'Next error overlay in the HTML');
+  assert(/>\d{2,}<\/|476/.test(html.replace(/\s/g, '')) || !/—<\/dd>/.test(html), 'counters all em-dashes: server render cannot see the data layer');
+});
+
 await check('GET /api/stats reports the catalogue and cache headers', async () => {
   const { status, body, headers } = await get('/api/stats');
   assert(status === 200, `HTTP ${status}`);
