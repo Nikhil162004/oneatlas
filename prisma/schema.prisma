@@ -1,0 +1,167 @@
+// OneAtlas — Full Stack role. Schema is the graded artefact; read docs/decisions/0001 first.
+// Deliberately absent (see docs/decisions/): Release table, rollup price columns, capability
+// join table, tsvector column. Each has a documented upgrade trigger, not a "not yet".
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ModelType {
+  TEXT
+  IMAGE
+  EMBEDDING
+  VIDEO
+  SPEECH
+  TRANSCRIPTION
+  RERANKING
+  REALTIME
+}
+
+/// The lab/company that trained the model (module 5: "AI Labs & Provider Directory").
+model Lab {
+  id      String  @id @default(cuid())
+  slug    String  @unique
+  name    String
+  website String?
+  /// shortcut: logoUrl is never invented — null until a source supplies one. Upgrade when we
+  /// ingest a catalogue that ships icons.
+  logoUrl String?
+  summary String? @db.Text
+
+  models Model[]
+
+  @@index([slug])
+}
+
+/// Whoever can serve the model: a first-party API, a cloud, or a gateway.
+model Provider {
+  id      String  @id @default(cuid())
+  slug    String  @unique
+  name    String
+  website String?
+
+  listings ModelListing[]
+}
+
+model Model {
+  id       String @id @default(cuid())
+  /// "{labSlug}/{modelSlug}" — mirrors the live product's /models/{lab}/{slug} URL shape.
+  slug     String @unique
+  name     String
+  labId    String
+  lab      Lab    @relation(fields: [labId], references: [id], onDelete: Restrict)
+
+  modelType ModelType @default(TEXT)
+
+  contextWindow   Int
+  maxOutputTokens Int?
+
+  inputModalities  String[]
+  outputModalities String[]
+
+  /// Capability filters (module 1). Booleans, not a join table: filters stay one indexed
+  /// predicate instead of a join per capability. See docs/decisions/0003.
+  supportsReasoning       Boolean @default(false)
+  supportsToolCalling     Boolean @default(false)
+  supportsStructuredOutput Boolean @default(false)
+  supportsVisionInput     Boolean @default(false)
+  openWeights             Boolean @default(false)
+
+  description String? @db.Text
+
+  releaseDate  DateTime?
+  deprecatedAt DateTime?
+
+  /// Free-form source payload kept so a normalisation bug is reproducible from the row.
+  raw Json?
+
+  listings ModelListing[]
+  scores   BenchmarkScore[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([labId])
+  @@index([modelType, releaseDate])
+  @@index([releaseDate])
+  @@index([contextWindow])
+  @@index([deprecatedAt])
+  // pg_trgm GIN indexes for search are created by the migration SQL: Prisma cannot express ops.
+}
+
+/// One price/limit record per (model, provider, endpoint). This table is the product: 1,118
+/// models map to 8,274 listings on the live site, so price is a property of the pair.
+model ModelListing {
+  id        String  @id @default(cuid())
+  modelId   String
+  providerId String
+  model     Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  provider  Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  endpointName String @default("default")
+
+  /// USD per 1M tokens. Decimal, never float — money.
+  promptPer1M     Decimal? @db.Decimal(14, 6)
+  completionPer1M Decimal? @db.Decimal(14, 6)
+  cacheReadPer1M  Decimal? @db.Decimal(14, 6)
+
+  contextWindow     Int?
+  maxOutputTokens   Int?
+  quantization      String?
+  latencyP50Ms      Int?
+  throughputTps     Int?
+  uptimePct         Decimal? @db.Decimal(5, 2)
+  isFree            Boolean  @default(false)
+  status            String?
+
+  @@unique([modelId, providerId, endpointName])
+  @@index([providerId])
+  @@index([promptPer1M])
+}
+
+/// A benchmark the platform can rank against (module 4).
+model Benchmark {
+  id       String  @id @default(cuid())
+  slug     String  @unique
+  name     String
+  category String
+  unit     String  @default("score")
+  higherIsBetter Boolean @default(true)
+
+  scores BenchmarkScore[]
+}
+
+model BenchmarkScore {
+  benchmarkId String
+  modelId     String
+  benchmark   Benchmark @relation(fields: [benchmarkId], references: [id], onDelete: Cascade)
+  model       Model     @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  score       Decimal @db.Decimal(10, 4)
+  sourceUrl   String?
+  evaluatedAt DateTime @default(now())
+
+  @@id([benchmarkId, modelId])
+  @@index([benchmarkId, score])
+}
+
+/// Every ingest run is auditable, and this is what stops a bad source from silently eating data.
+model IngestRun {
+  id          String   @id @default(cuid())
+  source      String
+  status      String
+  recordsIn   Int      @default(0)
+  modelsUp    Int      @default(0)
+  listingsUp  Int      @default(0)
+  skipped     Int      @default(0)
+  errors      Json?
+  startedAt   DateTime @default(now())
+  finishedAt  DateTime?
+
+  @@index([source, startedAt])
+}
