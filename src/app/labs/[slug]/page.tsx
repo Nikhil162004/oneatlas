@@ -64,7 +64,7 @@ export default async function LabPage({ params }: { params: Promise<{ slug: stri
         <Empty title="No models attributed to this lab" />
       ) : (
         <div className="tablewrap">
-          <table className="min-w-[720px] text-sm">
+          <table className="stack-sm min-w-[720px] text-sm">
             <caption className="sr-only">Models trained by this lab, newest first</caption>
             <thead>
               <tr>
@@ -78,7 +78,7 @@ export default async function LabPage({ params }: { params: Promise<{ slug: stri
             <tbody>
               {lab.models.map((m) => (
                 <tr key={m.slug}>
-                  <td>
+                  <td data-title>
                     <Link className="font-medium" href={`/models/${m.slug}`}>{m.name}</Link>
                     <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-[var(--faint)]">
                       <span className="tag">{m.modelType.toLowerCase()}</span>
@@ -86,10 +86,10 @@ export default async function LabPage({ params }: { params: Promise<{ slug: stri
                       {m.deprecated && <span className="flag flag-warn">deprecated</span>}
                     </span>
                   </td>
-                  <td className="num text-right">{contextLabel(m.contextWindow)}</td>
-                  <td className="num text-right">{priceLabel(m.cheapestPer1M)}</td>
-                  <td className="text-right text-[var(--muted)]">{m.cheapestProvider ?? '\u2014'}</td>
-                  <td className="num text-right">{dateLabel(m.releaseDate)}</td>
+                  <td data-label="Context" className="num text-right">{contextLabel(m.contextWindow)}</td>
+                  <td data-label="Cheapest input" className="num text-right">{priceLabel(m.cheapestPer1M)}</td>
+                  <td data-label="Served by" className="text-right text-[var(--muted)]">{m.cheapestProvider ?? '\u2014'}</td>
+                  <td data-label="Released" className="num text-right">{dateLabel(m.releaseDate)}</td>
                 </tr>
               ))}
             </tbody>

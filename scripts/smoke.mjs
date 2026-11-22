@@ -260,5 +260,21 @@ await check('a catalogue price is not counted as a provider offer', async () => 
   assert(stats.body.data.providers === body.data.length, `stats says ${stats.body.data.providers} providers, the directory lists ${body.data.length}`);
 });
 
+await check('every stacked table cell carries a label, so a phone shows no orphan values', async () => {
+  // Under 860px a `.stack-sm` table renders one card per row with `data-label` as the line label.
+  // A cell without one is invisible breakage: the value is there, its meaning is not. Nothing but
+  // the markup can catch that, so the markup is what this checks.
+  for (const path of ['/models', '/providers', '/rankings', '/labs/mistralai']) {
+    const page = await getPage(path);
+    assert(page.status === 200, `${path} HTTP ${page.status}`);
+    const body = page.text.match(/<table class="stack-sm[\s\S]*?<\/tbody>/)?.[0] ?? '';
+    assert(body, `${path}: no stack-sm tbody found, the table pattern regressed`);
+    const cells = body.match(/<td[^>]*>/g) ?? [];
+    const labelled = cells.filter((c) => /data-label=|data-title/.test(c));
+    assert(cells.length > 0, `${path}: empty tbody`);
+    assert(labelled.length === cells.length, `${path}: ${cells.length - labelled.length} of ${cells.length} cells have no data-label`);
+  }
+});
+
 console.log(`\n${pass} passed, ${fail.length} failed`);
 process.exit(fail.length ? 1 : 0);

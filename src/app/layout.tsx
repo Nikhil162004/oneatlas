@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import { Archivo } from 'next/font/google';
 import { getStats } from '@/lib/services/stats';
@@ -12,6 +12,20 @@ import './globals.css';
   ui-monospace resolves to SF Mono / Cascadia / Roboto Mono locally. One fewer blocking request.
 */
 const body = Archivo({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-archivo', display: 'swap' });
+
+/*
+  `viewportFit: cover` is what makes the safe-area insets in globals.css mean anything; without it
+  the browser keeps its own margin and `env(safe-area-inset-*)` is always 0. `colorScheme: dark` is
+  the meta twin of `color-scheme: dark`, and it is what keeps a phone from painting a white
+  overscroll page behind a black document.
+*/
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  colorScheme: 'dark',
+  themeColor: '#08090b',
+};
 
 export const metadata: Metadata = {
   title: { default: 'OneAtlas', template: '%s · OneAtlas' },
@@ -36,17 +50,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" className={body.variable}>
-      <body className="min-h-screen">
+      <body>
         <a className="skip" href="#main">Skip to content</a>
-        <header className="sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--bg)]">
-          <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 lg:px-8">
+        <header className="sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--bg)] pt-[max(12px,env(safe-area-inset-top))]">
+          <div className="shell flex flex-wrap items-center gap-x-6 gap-y-2 py-3">
             <Link href="/" className="num text-[15px] font-medium tracking-[-0.03em]">
               one<span className="text-[var(--accent)]">atlas</span>
             </Link>
-            <nav aria-label="Sections" className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <nav aria-label="Sections" className="navstrip -mx-4 flex flex-1 gap-x-4 px-4 text-sm sm:mx-0 sm:flex-none sm:px-0">
               {NAV.map(([href, label]) => (
-                <Link key={href} href={href} className="text-[var(--muted)] hover:text-[var(--fg)]">{label}</Link>
+                <Link key={href} href={href} className="py-2 text-[var(--muted)] hover:text-[var(--fg)]">{label}</Link>
               ))}
+              {/* On a phone the search field would crowd the strip; the page it goes to is the same form. */}
+              <Link href="/search" className="py-2 text-[var(--muted)] hover:text-[var(--fg)] md:hidden">Search</Link>
             </nav>
             <form method="get" action="/search" className="ml-auto hidden md:block">
               <label className="sr-only" htmlFor="site-search">Search models, labs and providers</label>
@@ -54,8 +70,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </form>
           </div>
         </header>
-        <main id="main" className="mx-auto max-w-[1400px] px-4 py-8 lg:px-8">{children}</main>
-        <footer className="mx-auto flex max-w-[1400px] flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-[var(--line)] px-4 py-8 text-xs text-[var(--faint)] lg:px-8">
+        <main id="main" className="shell py-8">{children}</main>
+        <footer className="shell shell-end flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-[var(--line)] py-8 text-xs text-[var(--faint)]">
           <span>OpenRouter public catalogue{mirrored ? `, mirrored ${mirrored}` : ''}{stats?.models ? ` · ${stats.models} models` : ''}</span>
           <Link className="underline" href="/api/models">JSON API</Link>
           <Link className="underline" href="/api/stats">stats</Link>

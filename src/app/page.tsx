@@ -72,7 +72,7 @@ export default async function Home() {
               {(Object.entries(stats.coverage) as Array<[string, number]>).map(([key, pct]) => (
                 <li key={key} className="rowline">
                   <span className="text-sm">{COVERAGE_LABEL[key]}</span>
-                  <span className="flex w-40 items-center gap-3">
+                  <span className="flex min-w-[104px] max-w-40 flex-1 basis-32 items-center gap-3">
                     <span className="flex-1">
                       <Meter value={pct} />
                     </span>
@@ -89,7 +89,7 @@ export default async function Home() {
               {stats.benchmarks.map((b) => (
                 <li key={b.name} className="rowline">
                   <span className="text-sm">{b.name}</span>
-                  <span className="flex w-40 items-center gap-3">
+                  <span className="flex min-w-[104px] max-w-40 flex-1 basis-32 items-center gap-3">
                     <span className="flex-1">
                       <Meter value={b.scored} max={maxScored} />
                     </span>
@@ -110,7 +110,7 @@ export default async function Home() {
             right={<Link className="text-sm underline" href="/models?capabilities=tools&sort=priceLow">all tool-capable models</Link>}
           />
           <div className="tablewrap">
-            <table className="text-sm">
+            <table className="stack-sm text-sm">
               <caption className="sr-only">Tool-capable models ordered by the cheapest provider input price</caption>
               <thead>
                 <tr>
@@ -123,13 +123,13 @@ export default async function Home() {
               <tbody>
                 {cheap.data.map((m) => (
                   <tr key={m.id}>
-                    <td>
+                    <td data-title>
                       <Link className="font-medium" href={`/models/${m.slug}`}>{m.name}</Link>
                       <span className="block text-xs text-[var(--faint)]">{m.lab.name}</span>
                     </td>
-                    <td><CapabilityTags caps={m.capabilities} /></td>
-                    <td className="num text-right">{contextLabel(m.contextWindow)}</td>
-                    <td className="num text-right">{pricePair(m.pricing.per1M.prompt, m.pricing.per1M.completion)}</td>
+                    <td data-label="Capabilities"><CapabilityTags caps={m.capabilities} /></td>
+                    <td data-label="Context" className="num text-right">{contextLabel(m.contextWindow)}</td>
+                    <td data-label="In / out per 1M" className="num text-right">{pricePair(m.pricing.per1M.prompt, m.pricing.per1M.completion)}</td>
                   </tr>
                 ))}
               </tbody>

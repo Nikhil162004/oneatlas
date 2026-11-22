@@ -67,6 +67,25 @@ Two rules the linters enforce and that are easy to break by accident:
   `format.priceLabel(0)` is `Free`. The Free filter and the price sort depend on that difference, and
   so does a reviewer's ability to tell "we did not mirror this" from "this costs nothing".
 
+**One breakpoint, and it changes the structure.** Below 860px a `.stack-sm` table stops being a
+table: `thead` and the wrapper's frame go away, each row becomes a card and each cell a
+label/value line whose label comes from `data-label`. A 10-column price table cannot be read at
+390px by shrinking it, and a sideways scroll region inside a scrolling page is precisely what feels
+broken on a touch screen. `/compare` keeps horizontal swiping instead, because comparing columns
+side by side is the whole feature there: snap points plus a sticky, opaque attribute column that
+travels with you. Sorting stays reachable on a phone through the form's Sort field, since the
+clickable headers are hidden. `npm run smoke` asserts every stacked cell carries a label, because an
+unlabelled value is this pattern's silent failure.
+
+Touch and browser defaults: 44px targets and 16px field text under `pointer: coarse` (iOS zooms the
+page when a focused input is smaller than 16px, and that zoom is what makes a form feel broken);
+`color-scheme: dark` plus `theme-color` so a phone does not paint a white overscroll page behind a
+black document; `100svh` instead of `100vh`; `env(safe-area-inset-*)` gutters with
+`viewport-fit=cover`; `touch-action: manipulation` on pressable controls; `overscroll-behavior-x:
+contain` and thin dark scrollbars on anything that does scroll sideways; `scroll-padding` so
+`#providers` lands below the sticky header, with `scroll-behavior: smooth` off under
+`prefers-reduced-motion`.
+
 **Visual interest is data, not decoration.** Coverage, benchmark scores, a lab's release cadence and
 each provider's price spread are drawn as bars whose only other encoding is the number beside them.
 The comparison table marks which rows actually differ, server-side, so the feature needs no toggle.

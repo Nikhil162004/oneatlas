@@ -33,7 +33,7 @@ export default async function ProvidersPage() {
         <>
           <Section id="table" title="Price and performance" count={data.length} />
           <div className="tablewrap">
-            <table className="min-w-[1000px] text-sm">
+            <table className="stack-sm min-w-[1000px] text-sm">
               <caption className="sr-only">Providers with listing counts, price range, latency and uptime</caption>
               <thead>
                 <tr>
@@ -52,7 +52,7 @@ export default async function ProvidersPage() {
               <tbody>
                 {data.map((p) => (
                   <tr key={p.slug}>
-                    <td>
+                    <td data-title>
                       <span className="font-medium">{p.name}</span>
                       {p.website && (
                         <a className="ml-2 text-xs text-[var(--faint)] underline" href={p.website} rel="noopener noreferrer" target="_blank" aria-label={`${p.name} website`}>
@@ -60,24 +60,24 @@ export default async function ProvidersPage() {
                         </a>
                       )}
                     </td>
-                    <td className="num text-right">{p.modelCount}</td>
-                    <td className="num text-right">{p.listingCount}</td>
-                    <td className="num text-right">{p.freeCount || '\u2014'}</td>
-                    <td className="num text-right">{priceLabel(p.cheapestPromptPer1M)}</td>
-                    <td className="num text-right text-[var(--muted)]">{priceLabel(p.avgPromptPer1M)}</td>
-                    <td className="num text-right">{priceLabel(p.dearestPromptPer1M)}</td>
-                    <td>
+                    <td data-label="Models" className="num text-right">{p.modelCount}</td>
+                    <td data-label="Listings" className="num text-right">{p.listingCount}</td>
+                    <td data-label="Free" className="num text-right">{p.freeCount || '\u2014'}</td>
+                    <td data-label="Cheapest input" className="num text-right">{priceLabel(p.cheapestPromptPer1M)}</td>
+                    <td data-label="Average input" className="num text-right text-[var(--muted)]">{priceLabel(p.avgPromptPer1M)}</td>
+                    <td data-label="Dearest input" className="num text-right">{priceLabel(p.dearestPromptPer1M)}</td>
+                    <td data-label="Spread">
                       <span
                         className="spread block"
                         style={{ '--from': scale(p.cheapestPromptPer1M), '--to': scale(p.dearestPromptPer1M), '--avg': scale(p.avgPromptPer1M) } as React.CSSProperties}
                         title={`cheapest ${priceLabel(p.cheapestPromptPer1M)}, average ${priceLabel(p.avgPromptPer1M)}, dearest ${priceLabel(p.dearestPromptPer1M)}`}
                       />
                     </td>
-                    <td className="num text-right">
+                    <td data-label="Avg latency p50" className="num text-right">
                       {msLabel(p.avgLatencyMs)}
                       <span className="block text-[11px] text-[var(--faint)]">{p.latencySamples} of {p.listingCount}</span>
                     </td>
-                    <td className="num text-right">
+                    <td data-label="Avg uptime 24h" className="num text-right">
                       {pctLabel(p.avgUptimePct)}
                       <span className="block text-[11px] text-[var(--faint)]">{p.uptimeSamples} of {p.listingCount}</span>
                     </td>

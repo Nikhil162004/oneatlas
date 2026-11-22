@@ -89,7 +89,7 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
         <Section id="providers-h" title="Provider endpoints" count={endpoints.length} />
         {endpoints.length ? (
           <div className="tablewrap">
-            <table className="min-w-[980px] text-sm">
+            <table className="stack-sm min-w-[980px] text-sm">
               <caption className="sr-only">Every provider endpoint serving this model, cheapest first</caption>
               <thead>
                 <tr>
@@ -106,19 +106,19 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
               <tbody>
                 {endpoints.map((p, i) => (
                   <tr key={`${p.provider.slug}-${p.endpoint}-${i}`}>
-                    <td>
+                    <td data-title>
                       <span className="font-medium">{p.provider.name}</span>
                       <span className="block text-xs text-[var(--faint)]">{p.endpoint}</span>
                       {i === 0 && p.per1M.prompt !== null && <span className="flag mt-1">cheapest</span>}
                       {p.free && <span className="flag flag-quiet mt-1 ml-1">free</span>}
                     </td>
-                    <td className="num text-right">{priceLabel(p.per1M.prompt)}</td>
-                    <td className="num text-right">{priceLabel(p.per1M.completion)}</td>
-                    <td className="num text-right">{priceLabel(p.per1M.cacheRead)}</td>
-                    <td className="num text-right">{contextLabel(p.contextWindow)}</td>
-                    <td className="num text-right">{msLabel(p.latencyP50Ms)}</td>
-                    <td className="num text-right">{pctLabel(p.uptimePct)}</td>
-                    <td className="text-[var(--muted)]">{p.quantization ?? '\u2014'}</td>
+                    <td data-label="In per 1M" className="num text-right">{priceLabel(p.per1M.prompt)}</td>
+                    <td data-label="Out per 1M" className="num text-right">{priceLabel(p.per1M.completion)}</td>
+                    <td data-label="Cache read" className="num text-right">{priceLabel(p.per1M.cacheRead)}</td>
+                    <td data-label="Context" className="num text-right">{contextLabel(p.contextWindow)}</td>
+                    <td data-label="Latency p50" className="num text-right">{msLabel(p.latencyP50Ms)}</td>
+                    <td data-label="Uptime 24h" className="num text-right">{pctLabel(p.uptimePct)}</td>
+                    <td data-label="Quantisation" className="text-[var(--muted)]">{p.quantization ?? '\u2014'}</td>
                   </tr>
                 ))}
               </tbody>

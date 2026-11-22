@@ -70,6 +70,15 @@ Filters live in the URL, so a filtered view is a link. Production timings on thi
 five: `/models` 25 ms, `/rankings` 23 ms, `/providers` 24 ms, `/labs` 11 ms, a model page 12 ms —
 each including its SQL.
 
+**Responsive:** below 860px every data table becomes one card per row with labelled lines, so nothing
+scrolls sideways on a phone; `/compare` keeps a swipe with a sticky attribute column instead. Touch
+targets are 44px, inputs 16px (iOS stops zooming), `color-scheme: dark` and `theme-color` stop the
+browser painting white overscroll, safe-area insets are honoured, and the header nav is a flickable
+strip. `npm run smoke` checks that every stacked cell carries its `data-label`. What I could not do
+here: look at it on a device - no browser in this sandbox, so the mobile behaviour is verified by the
+compiled CSS, the label guard and the layout rules, not by a screenshot. Read the rendered CSS at
+`.design-scan/_next/static/css/app/layout.css` if you want to check the media queries.
+
 The interface obeys `felipebasurto/unslop-ui`'s surface rules (U17 to U20): depth is a surface step
 plus a hairline, weights stop at 600, spacing is on one scale, transitions name a property and never
 decorate. What the screens gained over the first pass is typographic hierarchy (one webfont, a real
@@ -116,8 +125,8 @@ npx prisma migrate deploy                       applied 20261121000000_init (inc
 npm run ingest                                  476 models, 60 labs, 7 benchmarks, 756 scores, 0 issues
 npm run ingest -- --limit 120 --endpoints         120 models -> 378 listings across 75 providers
 re-ran the identical ingest                       row counts unchanged  -> idempotency proven
-npm run smoke                                   19/19 against the dev server
-NEXT_DIST_DIR=.next-build npx next start        19/19 again against the production build
+npm run smoke                                   20/20 against the dev server
+NEXT_DIST_DIR=.next-build npx next start        20/20 again against the production build
 npm run explain                                 see below
 ```
 

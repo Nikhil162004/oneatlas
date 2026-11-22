@@ -73,7 +73,7 @@ export default async function ModelsPage({ searchParams }: { searchParams: Promi
         <div className="space-y-4">
           <label className="block">
             <span className="label mb-1 block">Search</span>
-            <input className="field w-full" type="text" name="q" defaultValue={query.q ?? ''} placeholder="claude, llama, whisper" />
+            <input className="field w-full" type="text" name="q" defaultValue={query.q ?? ''} placeholder="claude, llama, whisper" enterKeyHint="search" autoComplete="off" />
           </label>
           <fieldset>
             <legend className="label mb-1 block">Capabilities</legend>
@@ -91,7 +91,7 @@ export default async function ModelsPage({ searchParams }: { searchParams: Promi
         <div className="space-y-4">
           <label className="block">
             <span className="label mb-1 block">Lab</span>
-            <input className="field w-full" list="labs" name="lab" defaultValue={query.lab ?? ''} placeholder="any" />
+            <input className="field w-full" list="labs" name="lab" defaultValue={query.lab ?? ''} placeholder="any" enterKeyHint="search" autoComplete="off" />
             <datalist id="labs">
               {labs.data.map((l) => <option key={l.slug} value={l.slug}>{`${l.name} ${l.modelCount}`}</option>)}
             </datalist>
@@ -116,11 +116,11 @@ export default async function ModelsPage({ searchParams }: { searchParams: Promi
         <div className="space-y-4">
           <label className="block">
             <span className="label mb-1 block">Min context</span>
-            <input className="field w-full num" type="number" min={0} step={1000} name="minContext" defaultValue={query.minContext ?? ''} placeholder="128000" />
+            <input className="field w-full num" type="text" inputMode="numeric" pattern="[0-9]*" name="minContext" defaultValue={query.minContext ?? ''} placeholder="128000" enterKeyHint="search" autoComplete="off" />
           </label>
           <label className="block">
             <span className="label mb-1 block">Max input price per 1M</span>
-            <input className="field w-full num" type="number" min={0} step="0.1" name="maxPrice" defaultValue={query.maxPrice ?? ''} placeholder="any" />
+            <input className="field w-full num" type="text" inputMode="decimal" name="maxPrice" defaultValue={query.maxPrice ?? ''} placeholder="any" enterKeyHint="search" autoComplete="off" />
           </label>
           <div className="flex items-end gap-2">
             <label className="block flex-1">
@@ -142,7 +142,7 @@ export default async function ModelsPage({ searchParams }: { searchParams: Promi
         />
       ) : (
         <div className="tablewrap">
-          <table className="min-w-[1000px] text-sm">
+          <table className="stack-sm min-w-[1000px] text-sm">
             <caption className="sr-only">Models, filterable and sortable; each model name links to its detail page</caption>
             <thead>
               <tr>
@@ -166,7 +166,7 @@ export default async function ModelsPage({ searchParams }: { searchParams: Promi
             <tbody>
               {data.map((m) => (
                 <tr key={m.id}>
-                  <td>
+                  <td data-title>
                     <Link className="font-medium" href={`/models/${m.slug}`}>{m.name}</Link>
                     <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-[var(--faint)]">
                       <span className="tag">{m.modelType.toLowerCase()}</span>
@@ -174,11 +174,11 @@ export default async function ModelsPage({ searchParams }: { searchParams: Promi
                       {m.pricing.free && <span className="flag flag-quiet">free</span>}
                     </span>
                   </td>
-                  <td><CapabilityTags caps={m.capabilities} /></td>
-                  <td className="num text-right">{contextLabel(m.contextWindow)}</td>
-                  <td className="num text-right">{pricePair(m.pricing.per1M.prompt, m.pricing.per1M.completion)}</td>
-                  <td className="num text-right text-[var(--muted)]">{dateLabel(m.releaseDate)}</td>
-                  <td className="num text-right">{m.providerCount || '\u2014'}</td>
+                  <td data-label="Capabilities"><CapabilityTags caps={m.capabilities} /></td>
+                  <td data-label="Context" className="num text-right">{contextLabel(m.contextWindow)}</td>
+                  <td data-label="In / out per 1M" className="num text-right">{pricePair(m.pricing.per1M.prompt, m.pricing.per1M.completion)}</td>
+                  <td data-label="Released" className="num text-right text-[var(--muted)]">{dateLabel(m.releaseDate)}</td>
+                  <td data-label="Providers" className="num text-right">{m.providerCount || '\u2014'}</td>
                 </tr>
               ))}
             </tbody>

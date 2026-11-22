@@ -36,10 +36,24 @@
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Dark first, so the browser paints scrollbars, form controls, the datalist popup and the
+   overscroll area dark. Without this a phone shows a white rubber-band at the end of the page and
+   light native spinners on the number fields, which reads as a broken layout. */
+html {
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Anchor links (/models/x/y#providers) land under the sticky header without this. */
+  scroll-padding-block-start: 80px;
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   background: var(--bg);
   color: var(--fg);
+  /* Page-level horizontal scroll is always a bug here: the only wide things are tables, and they
+     scroll themselves. `clip` (not `hidden`) keeps position: sticky working. */
   overflow-x: clip;
 }
 
@@ -47,6 +61,11 @@ body {
    reading as a flat black sheet. No blob, no second hue, nothing that moves. */
 body {
   font: 400 15px/1.6 var(--font-body);
+  /* 100vh is the *tall* viewport on mobile Safari: the address bar collapses, the page jumps, and a
+     min-height built on vh reads as a gap at the bottom. Two declarations, no feature test. */
+  min-height: 100vh;
+  min-height: 100svh;
+  -webkit-tap-highlight-color: rgb(232 234 238 / 0.08);
   background-image: linear-gradient(to bottom, rgb(232 234 238 / 0.035), rgb(232 234 238 / 0) 420px);
   font-synthesis-weight: none;
 }
@@ -76,6 +95,22 @@ a:hover {
   font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
+}
+
+/* One container for header, main and footer, so the gutters line up and the notch is handled once. */
+.shell {
+  width: 100%;
+  max-width: 1400px;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+@supports (padding: env(safe-area-inset-left)) {
+  .shell {
+    padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right));
+  }
+}
+.shell-end {
+  padding-block-end: max(32px, env(safe-area-inset-bottom));
 }
 
 .skip {
@@ -188,6 +223,10 @@ a.card:hover,
   font-size: 11px;
   color: var(--muted);
   white-space: nowrap;
+  /* Slugs are long and unbreakable; a tag must clip inside its row rather than widen it. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .tag-on {
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
@@ -285,6 +324,12 @@ a.card:hover,
   background: var(--surface-2);
 }
 
+.btn,
+.chip {
+  /* No 300ms double-tap-zoom delay on the controls people actually press. */
+  touch-action: manipulation;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -365,9 +410,21 @@ a.card:hover,
 
 /* ---------------------------------------------------------------- tables */
 
+.compare {
+  scroll-snap-type: x proximity;
+}
+.tablewrap:has(.compare) {
+  scroll-snap-type: x proximity;
+}
 .tablewrap {
   overflow-x: auto;
   border-radius: var(--r);
+  /* Contain the fling so finishing a horizontal swipe does not scroll the page behind it, and let a
+     trackpad/touch scroll settle on a column edge instead of mid-column. */
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
 }
 table {
   border-collapse: separate;
@@ -415,19 +472,134 @@ tbody tr:last-child th {
   min-width: 180px;
 }
 .compare td {
-  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  background: var(--surface);
+}
+.compare tbody td,
+.compare thead th:not(:first-child) {
+  scroll-snap-align: start;
+  min-width: 132px;
+}
+/* The opaque left column is what makes a swipeable comparison readable: the attribute name travels
+   with you. It needs a solid background and a hairline, or the cells behind it show through. */
+.compare th[scope='row'] {
+  border-right: var(--hair);
 }
 
-@media (max-width: 720px) {
+/* A 10-column table cannot be read at 390px by shrinking it, and a sideways scroll region inside a
+   scrolling page is exactly what feels broken on a touch screen. So under 860px a `.stack-sm` table
+   stops being a table: each row becomes a card, each cell a label/value line. The labels come from
+   data-label, which is why every cell carries one - `npm run smoke` asserts that no cell is left
+   without one, since an unlabelled value is the failure mode of this pattern. */
+@media (max-width: 860px) {
   h1 {
     font-size: 26px;
   }
   .lede {
     font-size: 16px;
   }
-  th,
-  td {
+
+  .tablewrap:has(.stack-sm) {
+    border: 0;
+    background: transparent;
+    overflow-x: visible;
+    border-radius: 0;
+  }
+  .stack-sm {
+    min-width: 0;
+    border: 0;
+    background: transparent;
+  }
+  .stack-sm caption {
+    display: none;
+  }
+  .stack-sm thead {
+    display: none;
+  }
+  .stack-sm tbody tr {
+    display: grid;
+    gap: 6px;
+    border: var(--hair);
+    border-radius: var(--r);
+    background: var(--surface);
+    padding: 12px 16px;
+    margin-block: 8px;
+  }
+  .stack-sm tbody td {
+    display: grid;
+    grid-template-columns: 7.5em 1fr;
+    align-items: baseline;
+    gap: 12px;
+    padding: 0;
+    border: 0;
+    text-align: left;
+  }
+  .stack-sm tbody td::before {
+    content: attr(data-label);
+    font-size: 12px;
+    color: var(--faint);
+  }
+  /* The row's title is the card heading: full width, larger, and it needs no label of its own. */
+  .stack-sm tbody td[data-title] {
+    order: -1;
+    display: block;
+    margin-block-end: 4px;
+    padding-block-end: 8px;
+    border-bottom: var(--hair);
+  }
+  .stack-sm tbody td[data-title]::before {
+    content: none;
+  }
+  .stack-sm tbody tr:last-child {
+    margin-block-end: 0;
+  }
+  .stack-sm tbody td,
+  .stack-sm tbody th {
+    padding: 0;
+  }
+
+  .rowline {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+}
+
+/* Touch: 44px targets and 16px input text. The font size is not vanity - iOS Safari zooms the whole
+   page when a focused field is smaller than 16px, and that zoom is what makes a form feel broken. */
+@media (pointer: coarse) {
+  .btn,
+  .chip,
+  .field {
+    min-height: 44px;
+  }
+  .field,
+  .btn,
+  .chip {
+    font-size: 16px;
+  }
+  .chip {
     padding: 10px 12px;
+  }
+  .stack-sm tbody tr {
+    padding: 16px;
+  }
+}
+
+/* The section nav is a strip you can flick on a phone, not four wrapped rows above the content. */
+@media (max-width: 640px) {
+  .navstrip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+  }
+  .navstrip::-webkit-scrollbar {
+    display: none;
+  }
+  .navstrip > * {
+    flex: none;
+    white-space: nowrap;
   }
 }
 
@@ -437,5 +609,9 @@ tbody tr:last-child th {
   *::after {
     transition-duration: 1ms !important;
     animation: none !important;
+  }
+  /* Anchored jumps (/models/x/y#providers) must snap, not glide. */
+  html {
+    scroll-behavior: auto;
   }
 }

@@ -28,9 +28,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         <p className="mt-1 text-sm text-[var(--muted)]">Names and slugs, case-insensitive, across models, labs and providers.</p>
       </div>
 
-      <form method="get" action="/search" className="flex max-w-xl gap-2">
+      <form method="get" action="/search" className="flex max-w-xl flex-wrap gap-2">
         <label className="sr-only" htmlFor="q">Search term</label>
-        <input id="q" className="field w-full" type="search" name="q" defaultValue={parsed.ok ? parsed.data.q : ''} placeholder="claude" />
+        <input id="q" className="field min-w-[200px] flex-1" type="search" name="q" defaultValue={parsed.ok ? parsed.data.q : ''} placeholder="claude" enterKeyHint="search" autoComplete="off" />
         <button className="btn btn-primary" type="submit">Search</button>
       </form>
 

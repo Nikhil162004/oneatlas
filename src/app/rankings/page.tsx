@@ -64,7 +64,7 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
         <>
           <Section id="board" title={q.benchmark ? (data[0]?.benchmark.name ?? 'Rankings') : 'Overall'} right={<small className="num">{meta.total} rows</small>} />
           <div className="tablewrap">
-            <table className="min-w-[760px] text-sm">
+            <table className="stack-sm min-w-[760px] text-sm">
               <caption className="sr-only">Models ranked by score, best first</caption>
               <thead>
                 <tr>
@@ -80,21 +80,21 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
               <tbody>
                 {data.map((r) => (
                   <tr key={`${r.model.id}-${r.benchmark.slug}`}>
-                    <td className="num text-right">
+                    <td data-label="Rank" className="num text-right">
                       {r.rank <= 3 ? <span className="flag flag-quiet justify-end">{r.rank}</span> : <span className="text-[var(--faint)]">{r.rank}</span>}
                     </td>
-                    <td>
+                    <td data-title>
                       <Link className="font-medium" href={`/models/${r.model.slug}`}>{r.model.name}</Link>
                       <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-[var(--faint)]">
                         <span className="tag">{r.model.modelType.toLowerCase()}</span>
                         {r.model.lab.name}
                       </span>
                     </td>
-                    <td className="text-[var(--muted)]">{r.benchmark.name}</td>
-                    <td className="num text-right font-medium">{r.score.toFixed(2)}</td>
-                    <td><Meter value={r.score} max={top} /></td>
-                    <td className="num text-right">{contextLabel(r.model.contextWindow)}</td>
-                    <td className="num text-right">{priceLabel(r.cheapestPromptPer1M)}</td>
+                    <td data-label="Benchmark" className="text-[var(--muted)]">{r.benchmark.name}</td>
+                    <td data-label="Score" className="num text-right font-medium">{r.score.toFixed(2)}</td>
+                    <td data-label="Against the leader"><Meter value={r.score} max={top} /></td>
+                    <td data-label="Context" className="num text-right">{contextLabel(r.model.contextWindow)}</td>
+                    <td data-label="Cheapest input" className="num text-right">{priceLabel(r.cheapestPromptPer1M)}</td>
                   </tr>
                 ))}
               </tbody>
