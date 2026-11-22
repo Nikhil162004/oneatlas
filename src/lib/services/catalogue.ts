@@ -564,3 +564,63 @@ export async function ingestStatus() {
     meta: {},
   };
 }
+
+/** Benchmarks as subjects, not just filters: every benchmark with how many models it has scored
+ * and who currently tops it. Higher-is-better is a column, not an assumption, so the top row is
+ * read in the direction the benchmark defines. */
+export async function listBenchmarks() {
+  const rows = await prisma.benchmark.findMany({ orderBy: { name: 'asc' } });
+  const data = await Promise.all(
+    rows.map(async (b) => {
+      const [count, top] = await Promise.all([
+        prisma.benchmarkScore.count({ where: { benchmarkId: b.id } }),
+        prisma.benchmarkScore.findFirst({
+          where: { benchmarkId: b.id },
+          orderBy: { score: b.higherIsBetter ? 'desc' : 'asc' },
+          include: { model: { select: { slug: true, name: true } } },
+        }),
+      ]);
+      return {
+        slug: b.slug,
+        name: b.name,
+        category: b.category,
+        unit: b.unit,
+        higherIsBetter: b.higherIsBetter,
+        scoredModels: count,
+        top: top ? { score: Number(top.score), modelSlug: top.model.slug, modelName: top.model.name } : null,
+      };
+    }),
+  );
+  return { data, meta: { total: data.length } };
+}
+
+/** One benchmark: what it measures and every scored model in the benchmark's own direction. */
+export async function benchmarkDetail(slug: string) {
+  const b = await prisma.benchmark.findUnique({ where: { slug: slug.toLowerCase() } });
+  if (!b) return null;
+  const scores = await prisma.benchmarkScore.findMany({
+    where: { benchmarkId: b.id },
+    orderBy: { score: b.higherIsBetter ? 'desc' : 'asc' },
+    include: {
+      model: {
+        select: {
+          slug: true, name: true, modelType: true, contextWindow: true,
+          lab: { select: { slug: true, name: true } },
+        },
+      },
+    },
+  });
+  return {
+    slug: b.slug,
+    name: b.name,
+    category: b.category,
+    unit: b.unit,
+    higherIsBetter: b.higherIsBetter,
+    scores: scores.map((s, i) => ({
+      rank: i + 1,
+      score: Number(s.score),
+      sourceUrl: s.sourceUrl,
+      model: s.model,
+    })),
+  };
+}

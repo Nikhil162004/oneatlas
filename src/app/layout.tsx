@@ -31,14 +31,29 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://oneatlas-smoky.vercel.app'),
   title: { default: 'OneAtlas', template: '%s · OneAtlas' },
   description: 'Every AI model on the public catalogue, with the providers serving it and what each charges.',
+  openGraph: {
+    type: 'website',
+    siteName: 'OneAtlas',
+    title: 'OneAtlas',
+    description: 'Discover, compare and evaluate AI models across providers: prices, benchmarks, and what changed between daily mirrors.',
+    url: '/',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'OneAtlas',
+    description: 'Discover, compare and evaluate AI models across providers: prices, benchmarks, and what changed between daily mirrors.',
+  },
 };
 
 const NAV = [
   ['/models', 'Models'],
   ['/rankings', 'Rankings'],
+  ['/benchmarks', 'Benchmarks'],
   ['/compare', 'Compare'],
+  ['/calculator', 'Calculator'],
   ['/labs', 'Labs'],
   ['/providers', 'Providers'],
   ['/changes', 'Changes'],

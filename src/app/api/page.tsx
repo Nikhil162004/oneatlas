@@ -28,6 +28,8 @@ const ENDPOINTS: readonly Endpoint[] = [
   ['GET', '/api/labs/{slug}', 'one lab, its models, its release cadence', 'path only'],
   ['GET', '/api/providers', 'providers having at least one endpoint listing: price spread, avg latency and uptime, each with its sample size', 'limit'],
   ['GET', '/api/providers/{slug}', 'one provider, the models it serves, with its own cheapest price on each', 'path only'],
+  ['GET', '/api/benchmarks', 'every benchmark: category, unit, direction, scored-model count, current top model', '—'],
+  ['GET', '/api/benchmarks/{slug}', 'one benchmark and every scored model, best first in its own direction', 'path only'],
   ['GET', '/api/stats', 'counts, capability coverage, benchmark coverage, newest releases', '—'],
   ['GET', '/api/changes', 'what the mirrors moved: prices, specs, capabilities, deprecations, newest first', 'limit'],
   ['GET', '/api/status', 'ingest runs, last successful mirror, catalogue counts: whether the data is alive', '—'],

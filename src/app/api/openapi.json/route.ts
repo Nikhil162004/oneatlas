@@ -97,6 +97,10 @@ const spec = {
         responses: ok('scored rows with rank, benchmark and model'),
       },
     },
+    '/benchmarks': { get: { summary: 'every benchmark: scored-model count and current top model', responses: ok('benchmark rows') } },
+    '/benchmarks/{slug}': {
+      get: { summary: 'one benchmark and every scored model, in its own direction', parameters: [pathParam('slug', 'benchmark slug')], responses: { ...ok('the benchmark profile'), '404': { description: 'no such benchmark' } } },
+    },
     '/labs': { get: { summary: 'labs by how much they ship', parameters: [param('limit', num('page size'))], responses: ok('labs with model counts') } },
     '/labs/{slug}': {
       get: { summary: "one lab: its models and release cadence", parameters: [pathParam('slug', 'lab slug')], responses: { ...ok('the lab profile'), '404': { description: 'no such lab' } } },

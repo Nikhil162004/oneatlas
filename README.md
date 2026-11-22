@@ -23,7 +23,7 @@ screen through the API — there is no fixture array in the frontend.
 Next.js (App Router, server components) · React · TypeScript · TailwindCSS · Next.js route handlers ·
 Zod · PostgreSQL · Prisma. Vercel + Neon is the deploy target; nothing here needs anything else.
 
-Twelve screens, an API index page, fifteen API routes, one Postgres schema. Every screen is
+Fifteen screens, an API index page, seventeen API routes, one Postgres schema. Every screen is
 server-rendered; the four with controls carry a client island that fetches the screen's own API
 and refreshes only its results region, so a filter click never reloads the page, while the URL
 stays the state (`docs/decisions/0008`). Every screen renders from the same service its endpoint does
@@ -83,6 +83,8 @@ DESIGN.md (repo root)       the design document, §API included
 | `/providers` | providers having at least one endpoint listing: models, listings, cheapest/average/dearest price as a spread bar, avg latency and uptime with the sample size, each row linking to the models it serves | `listProviders` |
 | `/providers/{slug}` | one provider: the models it serves, its own cheapest price on each, reliability over its listings | `providerDetail` |
 | `/search?q=` | models / labs / providers in three groups | `globalSearch` |
+| `/benchmarks`, `/benchmarks/{slug}` | the benchmarks as subjects: category, unit, direction, scored counts, and every scored model best-first | `listBenchmarks`, `benchmarkDetail` |
+| `/calculator` | a workload (requests/day, tokens in/out) ranked by monthly cost across the cheapest models | `listModels` seed + client arithmetic |
 | `/changes` | what moved between mirrors: price, spec and capability changes with the run that caused them | `changesFeed` |
 | `/status` | ingest runs, last successful mirror, catalogue counts — whether the daily refresh is alive | `ingestStatus` |
 
@@ -191,7 +193,7 @@ Architecture: ![request and data flow](docs/architecture.svg) — also `docs/arc
 npm run verify    # tsc --noEmit && node --test
 npm run build     # writes .next-build, so it can run with the dev server up (npm run clean resets both)
 npm run lint:design       # impeccable detect over src/app, via npx (no install)
-npm run lint:screens      # render the 14 pages into .design-scan/ and run the element rules on them
+npm run lint:screens      # render the 17 pages into .design-scan/ and run the element rules on them
 
 # the UI anti-slop gate (a third-party skill, not vendored here):
 npx skills add felipebasurto/unslop-ui -g

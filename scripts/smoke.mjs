@@ -336,6 +336,31 @@ await check('the OpenAPI document describes routes that answer, and the badge re
   assert((await getPage(`/api/models/ghost-lab/ghost-model/badge.svg`)).status === 404, 'ghost badge should be a 404');
 });
 
+await check('benchmark profiles, the calculator seed and the sitemap come from the mirror', async () => {
+  const list = await get('/api/benchmarks');
+  assert(list.status === 200 && list.body.data.length > 0, 'no benchmarks listed');
+  const first = list.body.data.find((b) => b.scoredModels > 0) ?? list.body.data[0];
+  assert(first.top === null || typeof first.top.score === 'number', 'top score is not numeric');
+  const detail = await get(`/api/benchmarks/${first.slug}`);
+  assert(detail.status === 200 && Array.isArray(detail.body.data.scores), 'benchmark profile has no scores');
+  if (detail.body.data.scores.length > 1) {
+    const scores = detail.body.data.scores.map((s) => s.score);
+    const sorted = [...scores].sort((a, b) => (detail.body.data.higherIsBetter ? b - a : a - b));
+    assert(JSON.stringify(scores) === JSON.stringify(sorted), 'scores ignore the benchmark direction');
+  }
+  assert((await get('/api/benchmarks/ghost-benchmark')).status === 404, 'ghost benchmark should be a 404');
+  const page = await getPage(`/benchmarks/${first.slug}`);
+  assert(page.status === 200 && page.text.includes(first.name), 'benchmark page did not render its name');
+  const calc = await getPage('/calculator');
+  assert(calc.status === 200 && calc.text.includes('Cost calculator'), 'calculator did not render');
+  const sitemap = await getPage('/sitemap.xml');
+  assert(sitemap.status === 200 && sitemap.text.includes('/models/') && sitemap.text.includes('/benchmarks/'), 'sitemap lacks mirrored URLs');
+  const robots = await getPage('/robots.txt');
+  assert(robots.status === 200 && robots.text.includes('sitemap.xml'), 'robots does not point at the sitemap');
+  const home = await getPage('/');
+  assert(home.text.includes('og:title'), 'no Open Graph title on the home page');
+});
+
 await check('a catalogue price is not counted as a provider offer', async () => {
   // The 476 models ingested without --endpoints each carry one listing derived from their own
   // catalogue entry. Counting those as "providers" put a row called "Unknown provider" at the top of

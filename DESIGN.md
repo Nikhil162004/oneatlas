@@ -27,7 +27,9 @@ compare screen cannot show "same model, cheaper elsewhere" — which is the prod
 | 3 Comparison | `GET /api/models/compare?ids=` (2–6, GET so the selection is shareable); row-oriented matrix; any model
   can be found and added from the picker's search, not only recent releases |
 | 4 Rankings & benchmarks | `GET /api/rankings?benchmark&category&type&minContext&view` (`view=value` ranks score per dollar of cheapest input); the screen offers benchmark chips plus
-  model-category and benchmark-family selects; offset paging by rank |
+  model-category and benchmark-family selects; offset paging by rank. Benchmarks are also subjects in
+  their own right: `/benchmarks` and `/benchmarks/{slug}` (with `GET /api/benchmarks[/{slug}]`) give each
+  a profile — category, unit, direction, every scored model best-first in its own direction |
 | 5 Labs & providers | `GET /api/labs`, `/api/labs/{slug}`, `/api/providers`, `/api/providers/{slug}`; releases derived by grouping
   models on `releaseDate`; labs and providers both have profile pages (models, prices, release cadence /
   reliability), and every directory row also links back to `/models?provider={slug}`, so the directory is a
@@ -37,7 +39,9 @@ compare screen cannot show "same model, cheaper elsewhere" — which is the prod
   and `GET /api/changes`, and `/status` with `GET /api/status` reads the IngestRun rows so a stale
   catalogue is a checkable fact, not a suspicion; the same events appear as a History timeline on
   each model page, ranked as Biggest movers by percentage move on `/changes`, and as RSS at
-  `/changes.xml` |
+  `/changes.xml`. A workload calculator (`/calculator`) ranks the cheapest models by monthly cost
+  for a stated request volume; the whole surface is machine-described at `GET /api/openapi.json`,
+  each model carries an embeddable badge at `/badge.svg`, and comparisons export as JSON/CSV |
 
 ## Data
 

@@ -35,6 +35,9 @@ const PAGES = {
   search: '/search?q=claude',
   // The API index is a screen too: it has a table, a <pre> and its own spacing, so it gets linted
   // like one instead of being the one page nobody checks.
+  benchmarks: '/benchmarks',
+  benchmark: '/benchmarks/aa_engineering',
+  calculator: '/calculator',
   changes: '/changes',
   status: '/status',
   api: '/api',
