@@ -122,12 +122,17 @@ entrance animation, no hover lift on a card.
 header, footer, forms, chips and buttons wholesale, and unspools tables to full width: a model
 record printed from the browser reads as a spec sheet, which is how the audience shares offline.
 
-**Machine documents render for humans.** The footer never sends a browser to a bare file: the
-OpenAPI document and the API-status envelope have readable viewer pages (`/openapi`,
-`/status/json`) with the raw file one click away for tools, and the XML documents carry
-stylesheets (`/sitemap.xsl`, `/feed.xsl`) so opening one shows a page, not a download prompt.
-The feeds are served as `application/xml` for the same reason: Blink will not apply a
-stylesheet to a feed MIME type, while readers sniff the RSS content regardless.
+**Machine documents render for humans.** The footer never sends a browser to a bare file,
+and never relies on the browser being willing to display one: a download prompt or a wall of
+raw markup is a broken link as far as the reader is concerned. The OpenAPI document renders
+as formatted endpoint documentation (`/openapi`, from the same spec object the raw route
+serves), the status envelope gets headline stats above the JSON (`/status/json`), the
+sitemap has a grouped page of its own (`/sitemap`), and RSS points at the readable feed it
+mirrors (`/changes#rss`) with the feed address shown for readers. The raw artefacts stay
+one click away for tools, and the XML still carries stylesheets (`/sitemap.xsl`,
+`/feed.xsl`) for browsers that honour them when the files are opened directly; the feeds are
+served as `application/xml` because Blink will not apply a stylesheet to a feed MIME type,
+while readers sniff the RSS content regardless.
 
 ## Interaction, and the arithmetic it depends on
 

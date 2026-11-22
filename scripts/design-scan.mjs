@@ -45,6 +45,7 @@ const PAGES = {
   matrix: '/benchmarks/matrix',
   openapi: '/openapi',
   'status-json': '/status/json',
+  'sitemap-page': '/sitemap',
   releases: '/releases',
   changes: '/changes',
   status: '/status',

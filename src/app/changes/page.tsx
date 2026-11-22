@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { changesFeed } from '@/lib/services/catalogue';
 import { Empty, Section } from '@/components/ui';
 import WatchedDigest from '@/components/WatchedDigest';
+import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Changes' };
@@ -32,6 +33,16 @@ export default async function ChangesPage() {
       </div>
 
       <WatchedDigest />
+
+      <section>
+        <Section id="rss" title="Follow by RSS" />
+        <p className="max-w-[72ch] text-sm leading-relaxed text-[var(--muted)]">
+          This page is the readable view of the change feed. A feed reader polls the same events as RSS:
+          paste the address below into the reader and new price moves arrive there instead. Every model
+          page carries the same arrangement for its own history, linked from its History section.
+        </p>
+        <p className="snippet num mt-3 overflow-auto">{`${SITE_URL}/changes.xml`}</p>
+      </section>
 
       {movers.length > 0 && (
         <section>

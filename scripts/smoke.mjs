@@ -475,12 +475,17 @@ await check('per-model RSS, the shortcuts hint and the print stylesheet ship', a
 
 await check('footer documents render for humans, not just tools', async () => {
   const home = await getPage('/');
-  assert(home.text.includes('href="/openapi"'), 'footer still points at the raw spec file');
-  assert(home.text.includes('href="/status/json"'), 'footer still points at the raw status file');
+  for (const href of ['href="/openapi"', 'href="/status/json"', 'href="/sitemap"', 'href="/changes#rss"']) {
+    assert(home.text.includes(href), `footer does not link ${href}`);
+  }
   const oa = await getPage('/openapi');
-  assert(oa.status === 200 && oa.text.includes('&quot;openapi&quot;'), 'spec viewer did not render the document');
+  assert(oa.status === 200 && oa.text.includes('/models/{lab}/{slug}') && oa.text.includes('Endpoints'), 'spec viewer did not render the documentation');
   const sj = await getPage('/status/json');
-  assert(sj.status === 200 && sj.text.includes('&quot;counts&quot;'), 'status viewer did not render the envelope');
+  assert(sj.status === 200 && sj.text.includes('&quot;counts&quot;') && sj.text.includes('Models mirrored'), 'status viewer did not render stats and envelope');
+  const smPage = await getPage('/sitemap');
+  assert(smPage.status === 200 && smPage.text.includes('href="/models/') && smPage.text.includes('Models by lab'), 'sitemap page did not render the inventory');
+  const changes = await getPage('/changes');
+  assert(changes.text.includes('id="rss"') && changes.text.includes('/changes.xml'), 'no RSS section on the changes page');
   const sm = await getPage('/sitemap.xml');
   assert(sm.text.includes('<?xml-stylesheet') && sm.text.includes('/sitemap.xsl'), 'sitemap carries no browser stylesheet');
   const sx = await getPage('/sitemap.xsl');
