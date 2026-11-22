@@ -13,6 +13,11 @@ export const metadata = { title: 'Changes' };
  */
 export default async function ChangesPage() {
   const { data, meta } = await changesFeed(100).catch(() => ({ data: [], meta: { limit: 100, total: 0 } }));
+  // The feed is chronological; this is the same rows re-ranked by how far a price actually moved.
+  const movers = data
+    .filter((c) => c.pctChange !== null)
+    .sort((a, b) => Math.abs(b.pctChange ?? 0) - Math.abs(a.pctChange ?? 0))
+    .slice(0, 8);
 
   return (
     <div className="space-y-6">
@@ -24,6 +29,23 @@ export default async function ChangesPage() {
           <Link className="underline" href="/status">Status</Link>; every event names the run that caused it.
         </p>
       </div>
+
+      {movers.length > 0 && (
+        <section>
+          <Section id="movers" title="Biggest movers" count={movers.length} />
+          <ul className="space-y-1.5 text-sm">
+            {movers.map((c) => (
+              <li key={c.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                <span className="num font-medium">{(c.pctChange ?? 0) > 0 ? '+' : ''}{(c.pctChange ?? 0).toFixed(1)}%</span>
+                <Link className="font-medium underline-offset-2 hover:underline" href={`/models/${c.modelSlug}`}>{c.modelSlug}</Link>
+                <span className="text-[var(--muted)]">{c.field}{c.detail ? ` · ${c.detail}` : ''}</span>
+                <span className="num text-[var(--muted)]">{c.oldValue} → {c.newValue}</span>
+                <span className="num text-xs text-[var(--faint)]">{new Date(c.at).toISOString().slice(0, 10)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {!data.length ? (
         <Empty

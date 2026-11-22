@@ -11,6 +11,7 @@ import { prisma } from '../db';
 import { buildList, buildRanking, encodeCursor } from '../query';
 import type { ListQuery } from '../validation';
 import { presentRow, type ListRow } from '../present';
+import { pctChange } from '../ingest/diff';
 
 const money = (v: Prisma.Decimal | string | null) => (v === null || v === '' ? null : Number(String(v)));
 
@@ -494,8 +495,38 @@ export async function changesFeed(limit = 50) {
       newValue: r.newValue,
       at: r.createdAt.toISOString(),
       source: r.run.source,
+      pctChange: pctChange(r.field, r.oldValue, r.newValue),
     })),
     meta: { limit, total },
+  };
+}
+
+export type HistoryEvent = Awaited<ReturnType<typeof changesFeed>>['data'][number];
+
+/** One model's recorded past: the same events the feed shows, filtered to a slug and read
+ * newest first. The model page renders this as its History section, so a price on the page can
+ * be checked against every move that produced it. */
+export async function modelHistory(lab: string, slug: string, limit = 50) {
+  const full = `${lab.toLowerCase()}/${slug.toLowerCase()}`;
+  const rows = await prisma.changeEvent.findMany({
+    where: { modelSlug: full },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    include: { run: { select: { source: true } } },
+  });
+  return {
+    data: rows.map((r) => ({
+      id: r.id,
+      modelSlug: r.modelSlug,
+      field: r.field,
+      detail: r.detail,
+      oldValue: r.oldValue,
+      newValue: r.newValue,
+      at: r.createdAt.toISOString(),
+      source: r.run.source,
+      pctChange: pctChange(r.field, r.oldValue, r.newValue),
+    })),
+    meta: { limit, slug: full },
   };
 }
 

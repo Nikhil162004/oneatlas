@@ -292,6 +292,26 @@ await check('changes feed and ingest status report what the mirrors did', async 
   assert(statusPage.status === 200 && statusPage.text.includes('Recent ingest runs'), 'status page did not render its runs');
 });
 
+await check('model history, biggest movers and the RSS feed tell the same story', async () => {
+  const rss = await getPage('/changes.xml');
+  assert(rss.status === 200 && rss.text.includes('<rss') && rss.text.includes('OneAtlas changes'), 'RSS feed did not render');
+  const feed = await get('/api/changes?limit=25');
+  assert(feed.body.data.every((c) => 'pctChange' in c), 'feed rows carry no pctChange');
+  const priced = feed.body.data.filter((c) => c.pctChange !== null);
+  if (priced.length) {
+    const page = await getPage('/changes');
+    assert(page.text.includes('Biggest movers'), 'movers section missing while priced changes exist');
+  }
+  if (feed.body.data.length) {
+    const slug = feed.body.data[0].modelSlug;
+    const page = await getPage(`/models/${slug}`);
+    assert(page.status === 200 && page.text.includes('History'), 'model page has no history section');
+    assert(page.text.includes(feed.body.data[0].field), 'history omits the newest recorded field');
+    const rssHas = rss.text.includes(slug);
+    assert(rssHas, 'RSS omits the newest changed model');
+  }
+});
+
 await check('a catalogue price is not counted as a provider offer', async () => {
   // The 476 models ingested without --endpoints each carry one listing derived from their own
   // catalogue entry. Counting those as "providers" put a row called "Unknown provider" at the top of

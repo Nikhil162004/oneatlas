@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { modelChanges, listingChanges, diffCatalogue, type ModelSnapshot, type ListingSnapshot } from '../src/lib/ingest/diff';
+import { modelChanges, listingChanges, diffCatalogue, pctChange, type ModelSnapshot, type ListingSnapshot } from '../src/lib/ingest/diff';
 
 const model: ModelSnapshot = {
   slug: 'acme/turbo-1',
@@ -65,4 +65,15 @@ test('diffCatalogue combines model and listing events', () => {
     [{ ...listing, promptPer1M: '0.50' }],
   );
   assert.deepEqual(events.map((e) => e.field), ['max output', 'input price']);
+});
+
+test('pctChange signs and scales a price move', () => {
+  assert.equal(pctChange('input price', '2.00', '1.00'), -50);
+  assert.equal(pctChange('output price', '1.00', '1.50'), 50);
+});
+
+test('pctChange refuses non-prices and free-to-paid', () => {
+  assert.equal(pctChange('context window', '100', '200'), null);
+  assert.equal(pctChange('input price', '0', '1.00'), null);
+  assert.equal(pctChange('input price', null, '1.00'), null);
 });

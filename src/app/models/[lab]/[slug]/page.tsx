@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { modelDetail, similarModels } from '@/lib/services/catalogue';
+import { modelDetail, modelHistory, similarModels } from '@/lib/services/catalogue';
 import { slugParamSchema } from '@/lib/validation';
 import { CapabilityTags, Meter, Section, StatRow } from '@/components/ui';
 import CostEstimator from '@/components/CostEstimator';
@@ -42,6 +42,7 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
       ? [{ provider: 'Catalogue listing (not a provider offer)', prompt: catalogue.per1M.prompt, completion: catalogue.per1M.completion, free: catalogue.free }]
       : [];
   const similar = await similarModels(parsed.data.lab, parsed.data.slug).catch(() => null);
+  const history = await modelHistory(parsed.data.lab, parsed.data.slug).catch(() => null);
   const modalities = [
     ...(model.inputModalities ?? []).map((m) => `in: ${m}`),
     ...(model.outputModalities ?? []).map((m) => `out: ${m}`),
@@ -193,6 +194,32 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {history && (
+        <section>
+          <Section id="history" title="History" count={history.data.length} right={<small>recorded by the mirrors, newest first</small>} />
+          {history.data.length ? (
+            <ul className="space-y-1.5 text-sm">
+              {history.data.map((h) => (
+                <li key={h.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                  <span className="num text-xs text-[var(--faint)]">{new Date(h.at).toISOString().slice(0, 10)}</span>
+                  <span className="font-medium">{h.field}</span>
+                  {h.detail && <span className="text-xs text-[var(--faint)]">{h.detail}</span>}
+                  <span className="num text-[var(--muted)]">{h.oldValue ?? '—'} → {h.newValue ?? '—'}</span>
+                  {h.pctChange !== null && (
+                    <span className="num text-xs text-[var(--faint)]">({h.pctChange > 0 ? '+' : ''}{h.pctChange.toFixed(1)}%)</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-[var(--faint)]">
+              No changes recorded for this model yet. Tracking began with the change feed at{' '}
+              <Link className="underline" href="/changes">/changes</Link>; a quiet history means every mirror since has found this record as it left it.
+            </p>
+          )}
         </section>
       )}
 

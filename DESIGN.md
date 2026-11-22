@@ -35,7 +35,9 @@ compare screen cannot show "same model, cheaper elsewhere" — which is the prod
 | 6 Product experience | shared nav, `GET /api/search` global lookup (also the ⌘K palette: the same groups, keyboard-first), responsive table, loading/empty/error states; a compare tray (slugs in localStorage, resolved by `/api/models/compare` on /compare, never a second source of truth) collects picks from model rows and alternative cards; the mirrors audit themselves —
   `ChangeEvent` rows written by the ingest that overwrote a value (lib/ingest/diff) feed `/changes`
   and `GET /api/changes`, and `/status` with `GET /api/status` reads the IngestRun rows so a stale
-  catalogue is a checkable fact, not a suspicion |
+  catalogue is a checkable fact, not a suspicion; the same events appear as a History timeline on
+  each model page, ranked as Biggest movers by percentage move on `/changes`, and as RSS at
+  `/changes.xml` |
 
 ## Data
 

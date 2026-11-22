@@ -89,6 +89,19 @@ export function listingChanges(before: ListingSnapshot | undefined, after: Listi
   return out;
 }
 
+/**
+ * Signed percentage move between two stored price strings, or null when the pair cannot carry
+ * one (a field that is not a price, a missing side, a free tier going paid). /changes ranks by
+ * this so a 40% drop outranks a two-cent one; the feed itself stays chronological.
+ */
+export function pctChange(field: string, oldValue: string | null, newValue: string | null): number | null {
+  if (!field.endsWith('price') || oldValue === null || newValue === null) return null;
+  const from = Number(oldValue);
+  const to = Number(newValue);
+  if (!Number.isFinite(from) || !Number.isFinite(to) || from <= 0) return null;
+  return ((to - from) / from) * 100;
+}
+
 export const listingKey = (l: ListingSnapshot) => `${l.modelSlug}|${l.providerSlug}|${l.endpointName}`;
 
 /** A runaway source must not flood the feed; the run row keeps the true upsert counts regardless. */
