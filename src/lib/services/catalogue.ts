@@ -471,3 +471,65 @@ export async function globalSearch(q: string, perGroup: number) {
   };
   return { data, meta: { query: q, empty: data.models.length + data.labs.length + data.providers.length === 0 } };
 }
+
+/** The change feed (Batch C). Events were written by the ingest that caused them, so this is a
+ * plain read: newest first, bounded, with the run's source attached so a reader can tell a
+ * scheduled mirror from a manual one. */
+export async function changesFeed(limit = 50) {
+  const [rows, total] = await Promise.all([
+    prisma.changeEvent.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: { run: { select: { source: true, startedAt: true } } },
+    }),
+    prisma.changeEvent.count(),
+  ]);
+  return {
+    data: rows.map((r) => ({
+      id: r.id,
+      modelSlug: r.modelSlug,
+      field: r.field,
+      detail: r.detail,
+      oldValue: r.oldValue,
+      newValue: r.newValue,
+      at: r.createdAt.toISOString(),
+      source: r.run.source,
+    })),
+    meta: { limit, total },
+  };
+}
+
+/** Ingest health: the runs themselves are the audit log IngestRun was created for. The status
+ * view answers "is the daily mirror alive, and when did it last succeed" without a database
+ * console; it reads the same rows the cron writes. */
+export async function ingestStatus() {
+  const since = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+  const [runs, models, listings, changesTotal, changes7d] = await Promise.all([
+    prisma.ingestRun.findMany({ orderBy: { startedAt: 'desc' }, take: 12, include: { _count: { select: { changes: true } } } }),
+    prisma.model.count(),
+    prisma.modelListing.count(),
+    prisma.changeEvent.count(),
+    prisma.changeEvent.count({ where: { createdAt: { gte: since } } }),
+  ]);
+  const lastSuccess = runs.find((r) => r.status === 'success');
+  return {
+    data: {
+      counts: { models, listings, changes: changesTotal, changesLast7d: changes7d },
+      lastSuccessAt: lastSuccess?.finishedAt?.toISOString() ?? null,
+      schedule: 'daily 03:00 UTC (Vercel Cron → /api/cron/ingest)',
+      runs: runs.map((r) => ({
+        id: r.id,
+        source: r.source,
+        status: r.status,
+        modelsUp: r.modelsUp,
+        listingsUp: r.listingsUp,
+        skipped: r.skipped,
+        changes: r._count.changes,
+        startedAt: r.startedAt.toISOString(),
+        finishedAt: r.finishedAt?.toISOString() ?? null,
+        durationMs: r.finishedAt ? r.finishedAt.getTime() - r.startedAt.getTime() : null,
+      })),
+    },
+    meta: {},
+  };
+}

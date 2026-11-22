@@ -173,5 +173,25 @@ model IngestRun {
   startedAt   DateTime @default(now())
   finishedAt  DateTime?
 
+  changes ChangeEvent[]
+
   @@index([source, startedAt])
+}
+
+/// One fact that moved between two mirrors: a price, a spec, a capability, a deprecation.
+/// Written by persistCatalogue from the diff of the rows it is about to overwrite (lib/ingest/diff),
+/// so the feed at /changes is a by-product of the write path, never a second guess at it.
+model ChangeEvent {
+  id        String    @id @default(cuid())
+  runId     String
+  run       IngestRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  modelSlug String
+  field     String
+  detail    String?
+  oldValue  String?
+  newValue  String?
+  createdAt DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([modelSlug, createdAt])
 }

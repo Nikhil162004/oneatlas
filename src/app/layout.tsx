@@ -41,6 +41,8 @@ const NAV = [
   ['/compare', 'Compare'],
   ['/labs', 'Labs'],
   ['/providers', 'Providers'],
+  ['/changes', 'Changes'],
+  ['/status', 'Status'],
 ] as const;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

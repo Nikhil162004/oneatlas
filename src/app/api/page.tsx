@@ -29,6 +29,8 @@ const ENDPOINTS: readonly Endpoint[] = [
   ['GET', '/api/providers', 'providers having at least one endpoint listing: price spread, avg latency and uptime, each with its sample size', 'limit'],
   ['GET', '/api/providers/{slug}', 'one provider, the models it serves, with its own cheapest price on each', 'path only'],
   ['GET', '/api/stats', 'counts, capability coverage, benchmark coverage, newest releases', '—'],
+  ['GET', '/api/changes', 'what the mirrors moved: prices, specs, capabilities, deprecations, newest first', 'limit'],
+  ['GET', '/api/status', 'ingest runs, last successful mirror, catalogue counts: whether the data is alive', '—'],
   ['POST', '/api/admin/ingest', 'mirror the upstream catalogue into Postgres; safe to re-run, and the row counts say so', 'header `x-ingest-token`, and nothing else: one POST mirrors the whole catalogue'],
   ['SCHEDULED', '/api/cron/ingest', 'the daily catalogue mirror Vercel Cron starts; same refresh as the POST above, with its own secret', 'header `Authorization: Bearer CRON_SECRET`, sent by Vercel; not a public read route'],
 ] as const;

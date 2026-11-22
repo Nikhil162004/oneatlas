@@ -14,15 +14,48 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../db';
 import type { Normalised } from './normalise';
+import { diffCatalogue, listingKey, type ListingSnapshot, type ModelSnapshot } from './diff';
 
 const BATCH = 200;
 const chunk = <T>(items: T[], n = BATCH): T[][] => items.length ? Array.from({ length: Math.ceil(items.length / n) }, (_, i) => items.slice(i * n, (i + 1) * n)) : [];
 
-export type PersistResult = { modelsUp: number; listingsUp: number; scoresUp: number; skipped: number };
+export type PersistResult = { modelsUp: number; listingsUp: number; scoresUp: number; skipped: number; changes: number };
 
 export async function persistCatalogue(data: Normalised, source: string): Promise<PersistResult> {
   const run = await prisma.ingestRun.create({ data: { source, status: 'running' } });
-  const result: PersistResult = { modelsUp: 0, listingsUp: 0, scoresUp: 0, skipped: data.issues.length };
+  const result: PersistResult = { modelsUp: 0, listingsUp: 0, scoresUp: 0, skipped: data.issues.length, changes: 0 };
+
+  // Snapshot what this run is about to overwrite, so the overwrite can be reported, not just
+  // done (lib/ingest/diff). Two indexed reads against ~500 slugs; the diff itself is in memory.
+  const beforeModels = new Map<string, ModelSnapshot>(
+    (await prisma.model.findMany({
+      where: { slug: { in: data.models.map((m) => m.slug) } },
+      select: {
+        slug: true, contextWindow: true, maxOutputTokens: true, supportsReasoning: true,
+        supportsToolCalling: true, supportsStructuredOutput: true, supportsVisionInput: true,
+        openWeights: true, deprecatedAt: true,
+      },
+    })).map((m) => [m.slug, { ...m, deprecatedAt: m.deprecatedAt?.toISOString() ?? null }]),
+  );
+  const beforeListings = new Map<string, ListingSnapshot>();
+
+  {
+    const existing = await prisma.modelListing.findMany({
+      where: { model: { slug: { in: data.models.map((m) => m.slug) } } },
+      select: {
+        endpointName: true, promptPer1M: true, completionPer1M: true,
+        model: { select: { slug: true } }, provider: { select: { slug: true } },
+      },
+    });
+    for (const l of existing) {
+      const snap: ListingSnapshot = {
+        modelSlug: l.model.slug, providerSlug: l.provider.slug, endpointName: l.endpointName,
+        promptPer1M: l.promptPer1M === null ? null : String(l.promptPer1M),
+        completionPer1M: l.completionPer1M === null ? null : String(l.completionPer1M),
+      };
+      beforeListings.set(listingKey(snap), snap);
+    }
+  }
 
   try {
     for (const part of chunk([...data.labs.values()])) {
@@ -132,6 +165,24 @@ export async function persistCatalogue(data: Normalised, source: string): Promis
       }));
       result.scoresUp += part.length;
     }
+
+    // Report the overwrite before declaring the run a success: if the events cannot be written,
+    // the run is not the clean mirror its counts claim, and it should fail loudly instead.
+    const events = diffCatalogue(
+      beforeModels,
+      beforeListings,
+      data.models.map((m) => ({
+        slug: m.slug, contextWindow: m.contextWindow, maxOutputTokens: m.maxOutputTokens,
+        supportsReasoning: m.supportsReasoning, supportsToolCalling: m.supportsToolCalling,
+        supportsStructuredOutput: m.supportsStructuredOutput, supportsVisionInput: m.supportsVisionInput,
+        openWeights: m.openWeights, deprecatedAt: m.deprecatedAt,
+      })),
+      data.listings,
+    );
+    if (events.length) {
+      await prisma.changeEvent.createMany({ data: events.map((e) => ({ ...e, runId: run.id })) });
+    }
+    result.changes = events.length;
 
     await prisma.ingestRun.update({
       where: { id: run.id },

@@ -23,7 +23,7 @@ screen through the API — there is no fixture array in the frontend.
 Next.js (App Router, server components) · React · TypeScript · TailwindCSS · Next.js route handlers ·
 Zod · PostgreSQL · Prisma. Vercel + Neon is the deploy target; nothing here needs anything else.
 
-Ten screens, an API index page, twelve API routes, one Postgres schema. Every screen is
+Twelve screens, an API index page, fifteen API routes, one Postgres schema. Every screen is
 server-rendered; the four with controls carry a client island that fetches the screen's own API
 and refreshes only its results region, so a filter click never reloads the page, while the URL
 stays the state (`docs/decisions/0008`). Every screen renders from the same service its endpoint does
@@ -50,10 +50,10 @@ saved payload; `--dry` normalises and reports without touching the database.
 ## Layout
 
 ```
-prisma/schema.prisma        Lab · Provider · Model · ModelListing · Benchmark(+Score) · IngestRun
+prisma/schema.prisma        Lab · Provider · Model · ModelListing · Benchmark(+Score) · IngestRun · ChangeEvent
 prisma/sql/search.sql       pg_trgm GIN indexes (Prisma can't state an operator class)
 src/lib/ingest/normalise.ts pure: units, money, slugs, capabilities, benchmarks  ← the tested core
-src/lib/ingest/persist.ts   idempotent upserts + IngestRun audit row
+src/lib/ingest/persist.ts   idempotent upserts + IngestRun audit row + change events (lib/ingest/diff.ts)
 vercel.json                 framework + build command, so a deploy needs no dashboard folklore
 src/lib/query.ts            filters + sort + keyset cursor, one definition of each
 src/lib/validation.ts       zod at every boundary
@@ -81,7 +81,10 @@ DESIGN.md (repo root)       the design document, §API included
 | `/rankings` | leaderboard, benchmark chips, model-category and benchmark-family selects, offset paging with a stated range | `rankings` |
 | `/labs`, `/labs/{slug}` | 60 labs by output; a lab's models plus a month-by-month release cadence | `listLabs`, `labDetail` |
 | `/providers` | providers having at least one endpoint listing: models, listings, cheapest/average/dearest price as a spread bar, avg latency and uptime with the sample size, each row linking to the models it serves | `listProviders` |
+| `/providers/{slug}` | one provider: the models it serves, its own cheapest price on each, reliability over its listings | `providerDetail` |
 | `/search?q=` | models / labs / providers in three groups | `globalSearch` |
+| `/changes` | what moved between mirrors: price, spec and capability changes with the run that caused them | `changesFeed` |
+| `/status` | ingest runs, last successful mirror, catalogue counts — whether the daily refresh is alive | `ingestStatus` |
 
 Filters live in the URL, so a filtered view is a link. Production timings on this machine, best of
 five: `/models` 25 ms, `/rankings` 23 ms, `/providers` 24 ms, `/labs` 11 ms, a model page 12 ms —
@@ -188,7 +191,7 @@ Architecture: ![request and data flow](docs/architecture.svg) — also `docs/arc
 npm run verify    # tsc --noEmit && node --test
 npm run build     # writes .next-build, so it can run with the dev server up (npm run clean resets both)
 npm run lint:design       # impeccable detect over src/app, via npx (no install)
-npm run lint:screens      # render the 12 pages into .design-scan/ and run the element rules on them
+npm run lint:screens      # render the 14 pages into .design-scan/ and run the element rules on them
 
 # the UI anti-slop gate (a third-party skill, not vendored here):
 npx skills add felipebasurto/unslop-ui -g

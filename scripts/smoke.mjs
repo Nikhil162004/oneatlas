@@ -277,6 +277,21 @@ await check('GET /api/rankings?view=value ranks by score per dollar, and alterna
   assert(page.text.includes('Best value'), 'the rankings page does not offer the value board');
 });
 
+await check('changes feed and ingest status report what the mirrors did', async () => {
+  const changes = await get('/api/changes?limit=5');
+  assert(changes.status === 200 && Array.isArray(changes.body.data), 'changes feed is not an array envelope');
+  assert(typeof changes.body.meta.total === 'number', 'changes feed has no total');
+  const status = await get('/api/status');
+  assert(status.status === 200 && Array.isArray(status.body.data.runs), 'status has no runs array');
+  assert(status.body.data.counts.models > 0, 'status counts no models');
+  assert(status.body.data.runs.length > 0 && status.body.data.lastSuccessAt, 'no successful ingest run recorded');
+  assert(status.body.data.runs[0].startedAt >= (status.body.data.runs.at(-1)?.startedAt ?? ''), 'runs are not newest first');
+  const changesPage = await getPage('/changes');
+  assert(changesPage.status === 200 && changesPage.text.includes('Changes'), 'changes page did not render');
+  const statusPage = await getPage('/status');
+  assert(statusPage.status === 200 && statusPage.text.includes('Recent ingest runs'), 'status page did not render its runs');
+});
+
 await check('a catalogue price is not counted as a provider offer', async () => {
   // The 476 models ingested without --endpoints each carry one listing derived from their own
   // catalogue entry. Counting those as "providers" put a row called "Unknown provider" at the top of
