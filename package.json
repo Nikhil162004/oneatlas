@@ -1,0 +1,43 @@
+{
+  "name": "oneatlas",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint:ui": "node tools/sloplint.mjs src/app --scope app --tier floor",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "ingest": "tsx scripts/ingest.ts",
+    "verify": "npm run typecheck && npm test",
+    "ingest:offline": "tsx scripts/ingest.ts --offline fixtures/or_models.json --dry"
+  },
+  "prisma": {
+    "seed": "tsx scripts/ingest.ts --limit 40"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "next": "15.5.29",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "@types/react": "19.0.2",
+    "prisma": "6.19.3",
+    "tailwindcss": "4.3.5",
+    "@tailwindcss/postcss": "4.3.5",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}
