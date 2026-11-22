@@ -84,7 +84,7 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
                       {r.rank <= 3 ? <span className="flag flag-quiet justify-end">{r.rank}</span> : <span className="text-[var(--faint)]">{r.rank}</span>}
                     </td>
                     <td data-title>
-                      <Link className="font-medium" href={`/models/${r.model.slug}`}>{r.model.name}</Link>
+                      <Link className="rowlink font-medium" href={`/models/${r.model.slug}`}>{r.model.name}</Link>
                       <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-[var(--faint)]">
                         <span className="tag">{r.model.modelType.toLowerCase()}</span>
                         {r.model.lab.name}

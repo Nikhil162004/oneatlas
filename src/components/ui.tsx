@@ -1,6 +1,7 @@
 /** Shared presentational pieces. All server components; none of them ship JavaScript. */
 import Link from 'next/link';
 import { EMDASH } from '@/lib/format';
+import { hrefWith, type RawParams } from '@/lib/page';
 
 export const CAP_LABEL: Record<string, string> = {
   reasoning: 'Reasoning',
@@ -33,6 +34,72 @@ export function CapabilityTags({ caps }: { caps: Record<string, boolean> }) {
         </span>
       ))}
     </span>
+  );
+}
+
+/**
+ * The line above a table: how many rows you are looking at, what they are sorted by, and one × per
+ * filter that is on. It exists because a URL you can only get out of by reloading is the difference
+ * between a tool and a poster - and every × is a link that deletes one query parameter, so the URL
+ * stays the only state. `note` and `count` come from the page, which got them from the query the
+ * service actually ran, so this line cannot disagree with the rows under it.
+ */
+export function FilterBar({
+  path,
+  raw,
+  count,
+  note,
+  fields,
+}: {
+  path: string;
+  raw: RawParams;
+  count: string;
+  note?: string;
+  fields: Array<{ key: string; label: string; multi?: boolean }>;
+}) {
+  const chips: Array<{ text: string; href: string }> = [];
+  for (const { key, label, multi } of fields) {
+    const value = raw[key];
+    if (value === undefined || value === '') continue;
+    // A repeated key (`capabilities=tools&capabilities=vision`, what the checkbox group submits) and
+    // a comma list (what a person types) are the same filter, so `multi` reads both as a list. Keys
+    // without it are single strings: a search term containing a comma must stay one chip, or the ×
+    // would delete half of a query.
+    const all = (Array.isArray(value) ? value : multi ? String(value).split(',') : [value])
+      .map((x) => x.trim())
+      .filter(Boolean);
+    for (const one of all) {
+      const rest = all.filter((x) => x !== one);
+      chips.push({
+        // A checkbox filter's value is `true`, which is the parameter's business, not the reader's.
+        text: one === 'true' ? label : all.length > 1 ? one : `${label} ${one}`,
+        href: hrefWith(raw, { [key]: rest.length ? rest.join(',') : null }, path),
+      });
+    }
+  }
+  return (
+    <div className="subbar">
+      <span className="num subbar-count">{count}</span>
+      {note && <span>{note}</span>}
+      {chips.length > 0 && (
+        <>
+          <ul className="subbar-chips">
+            {chips.map((c) => (
+              <li key={c.text}>
+                <a className="chip-x" href={c.href}>
+                  {c.text}
+                  <span aria-hidden="true">×</span>
+                  <span className="sr-only">clear this filter</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+          <a className="subbar-clear" href={path}>
+            Clear all
+          </a>
+        </>
+      )}
+    </div>
   );
 }
 

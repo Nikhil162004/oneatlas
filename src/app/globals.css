@@ -29,6 +29,16 @@
   --font-body: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
   --font-num: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Menlo, monospace;
 
+  /* The header row has a declared height, so a pinned table header can sit exactly under it. Sticky
+     offsets measured against a wrapping header drift by a line at some viewport widths, which looks
+     like a broken layout; one variable means one number to keep true. */
+  --chrome-row: 36px;
+  --chrome-top: 12px;
+  /* Overridden by the @supports block below, so the pinned-header math and the safe area are the
+     same number rather than two numbers that have to be kept in agreement. */
+  --chrome-h: calc(var(--chrome-row) + var(--chrome-top) + 12px);
+  --subbar-h: 44px;
+
   --r: 8px;
   --r-sm: 6px;
   --hair: 1px solid var(--line);
@@ -44,7 +54,7 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   /* Anchor links (/models/x/y#providers) land under the sticky header without this. */
-  scroll-padding-block-start: 80px;
+  scroll-padding-block-start: calc(var(--chrome-h) + 24px);
   scroll-behavior: smooth;
 }
 
@@ -102,15 +112,46 @@ a:hover {
   width: 100%;
   max-width: 1400px;
   margin-inline: auto;
-  padding-inline: 16px;
+  --pad-l: 16px;
+  --pad-r: 16px;
+  padding-inline: var(--pad-l) var(--pad-r);
 }
 @supports (padding: env(safe-area-inset-left)) {
   .shell {
-    padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right));
+    --pad-l: max(16px, env(safe-area-inset-left));
+    --pad-r: max(16px, env(safe-area-inset-right));
+    padding-inline: var(--pad-l) var(--pad-r);
   }
 }
 .shell-end {
   padding-block-end: max(32px, env(safe-area-inset-bottom));
+}
+
+.chrome {
+  /* The header's whole height is --chrome-row + --chrome-top + 12px, which is exactly the
+     --chrome-h the pinned table headers use. Padding on the header rather than on the row keeps the
+     math in one place when the row wraps on a phone. */
+  padding-block: var(--chrome-top) 12px;
+}
+@supports (padding: env(safe-area-inset-top)) {
+  .chrome {
+    --chrome-top: max(12px, env(safe-area-inset-top));
+  }
+}
+/* One row, never wrapped, so --chrome-h stays true at every width: the nav strip scrolls sideways
+   instead of pushing the search field onto a second line. */
+.chrome-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: var(--chrome-row);
+}
+@media (max-width: 860px) {
+  .chrome-row {
+    height: auto;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+  }
 }
 
 .skip {
@@ -445,7 +486,8 @@ th {
   font-size: 12px;
   font-weight: 500;
   color: var(--faint);
-  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  /* Opaque, not a tint: this row pins to the viewport at desktop widths and rows pass under it. */
+  background: var(--surface-2);
   white-space: nowrap;
 }
 tbody tr {
@@ -566,6 +608,9 @@ tbody tr:last-child th {
 /* Touch: 44px targets and 16px input text. The font size is not vanity - iOS Safari zooms the whole
    page when a focused field is smaller than 16px, and that zoom is what makes a form feel broken. */
 @media (pointer: coarse) {
+  :root {
+    --chrome-row: 44px;
+  }
   .btn,
   .chip,
   .field {
@@ -601,6 +646,246 @@ tbody tr:last-child th {
     flex: none;
     white-space: nowrap;
   }
+}
+
+/* ---------------------------------------------------------------- a product, not a demo */
+
+/* The header row of a long table should stay legible while you read it, and it can only pin to the
+   viewport if nothing between them is a scroll container. `overflow-x: auto` makes .tablewrap one,
+   which is why the header used to slide away. So: switch to `clip`, which is not a scroll container,
+   but only where no column can be lost - the widest table is min-w-[1000px], the shell takes 64px of
+   padding, and a classic scrollbar takes another ~15px, which is why the threshold is 1200 and not
+   "wide enough to fit". Below it the wrapper scrolls sideways, as it must. */
+@media (min-width: 1200px) {
+  .tablewrap:not(:has(.compare)) {
+    overflow-x: clip;
+  }
+  .tablewrap:not(:has(.compare)) thead th {
+    position: sticky;
+    /* --pin-top is set by the screen that also has a sticky summary line, so the column headers land
+       under it instead of sliding behind it. Everything else pins directly under the app header. The
+       extra 1px is the header's own bottom border, which is part of what it covers. */
+    top: calc(var(--pin-top, var(--chrome-h)) + 1px);
+    z-index: 3;
+    background: var(--surface-2);
+    /* The row border lives on the cell and scrolls away with it; a shadow at zero offset does not. */
+    box-shadow: 0 1px 0 rgb(232 234 238 / 0.13);
+  }
+}
+
+/* The row's own summary line, and the way out of a filter you tapped three screens ago. Sticky on
+  desktop because it is where the count, the sort and the removable chips live while a 100-row list
+  scrolls under them. Full-bleed into the shell gutter, or a row beside it shows through. */
+/* A screen that pins its summary line has to push the table header down by the same amount, which is
+   what this class is for: one flag on the page container, read by the sticky rule below it. */
+.has-subbar {
+  --pin-top: calc(var(--chrome-h) + var(--subbar-h));
+}
+.subbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-block: 8px;
+  margin-block: 0;
+  border-block: var(--hair);
+  font-size: 13px;
+  color: var(--muted);
+}
+@media (min-width: 1200px) {
+  .subbar {
+    position: sticky;
+    top: calc(var(--chrome-h) + 1px);
+    z-index: 4;
+    flex-wrap: nowrap;
+    height: var(--subbar-h);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    white-space: nowrap;
+    margin-inline: calc(-1 * var(--pad-l)) calc(-1 * var(--pad-r));
+    padding-inline: var(--pad-l) var(--pad-r);
+    background: var(--bg);
+  }
+  .subbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+.subbar-count {
+  color: var(--fg);
+  font-weight: 500;
+}
+.subbar-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.subbar-chips li {
+  display: flex;
+}
+.subbar-clear {
+  margin-inline-start: auto;
+  color: var(--muted);
+  text-decoration: underline;
+  text-decoration-color: var(--line-2);
+}
+.subbar-clear:hover {
+  color: var(--fg);
+  text-decoration-color: var(--accent);
+}
+
+/* A chip you click to *remove* a filter: same visual language as the filters in the form, with the
+   value it carries and an × that is a link deleting one query parameter. No state, no JavaScript. */
+.chip-x {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 8px;
+  border: var(--hair);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 12px;
+  text-decoration: none;
+  transition: border-color 120ms var(--ease), background-color 120ms var(--ease);
+}
+.chip-x:hover {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+.chip-x span[aria-hidden] {
+  color: var(--faint);
+  font-family: var(--font-num);
+}
+.chip-x:hover span[aria-hidden] {
+  color: var(--accent);
+}
+
+/* The whole row is the target, the way every serious table works: a link on the name, whose
+   ::after stretches over the row so a click anywhere opens it. One tab stop, unchanged. Any other
+   link inside the row has to sit above that overlay or it becomes unclickable, hence z-index 2. */
+/* The overlay is measured against the row, not the cell, so `position: relative` goes on the `tr`.
+   That is legal and works in every engine that matters with `border-collapse: separate` (which this
+   table already uses, for the sticky header); on `collapse` the row is not a containing block and the
+   link would only cover its own cell. */
+tbody tr:has(.rowlink) {
+  position: relative;
+}
+.rowlink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+tbody tr:has(.rowlink) {
+  cursor: pointer;
+}
+tbody tr:has(.rowlink) a:not(.rowlink) {
+  position: relative;
+  z-index: 2;
+}
+tbody tr:has(.rowlink):hover .rowlink {
+  text-decoration-color: var(--accent);
+}
+
+/* A number in a column must line up with the number above it: fixed decimals (see priceLabel),
+   tabular figures, and no wrapping that would break the alignment mid-value. */
+td.num,
+th.num {
+  white-space: nowrap;
+}
+
+.statgrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border: var(--hair);
+  border-radius: var(--r);
+  background: var(--surface);
+  overflow: hidden;
+}
+.statgrid > * {
+  padding: 16px;
+  border-inline-start: var(--hair);
+  border-top: var(--hair);
+}
+.statgrid > :nth-child(odd) {
+  border-inline-start: 0;
+}
+.statgrid > :nth-child(-n + 2) {
+  border-top: 0;
+}
+@media (min-width: 640px) {
+  .statgrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .statgrid > * {
+    border-inline-start: var(--hair);
+    border-top: 0;
+  }
+  .statgrid > :first-child {
+    border-inline-start: 0;
+  }
+}
+.stat {
+  display: block;
+  margin-block-start: 4px;
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 1200px) {
+  .stat {
+    font-size: 40px;
+  }
+}
+.display {
+  font-size: 34px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+@media (min-width: 1200px) {
+  .display {
+    font-size: 44px;
+  }
+}
+
+/* Desktop scrollbars on a dark surface: the default track reads as a foreign widget glued to the
+   bottom of the table. 10px, transparent track, inset thumb. */
+.tablewrap::-webkit-scrollbar {
+  height: 10px;
+}
+.tablewrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tablewrap::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+  background-clip: content-box;
+  border: 3px solid transparent;
+  border-radius: 6px;
+}
+.tablewrap::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--muted) 55%, transparent);
+  background-clip: content-box;
+}
+
+/* A select draws its own arrow, which is a native control that no longer matches the field around it:
+   one hairline chevron in the muted colour, as a data URI so it costs no request. */
+select.field {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-inline-end: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a4a8b2' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+input[type='search']::-webkit-search-decoration {
+  -webkit-appearance: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

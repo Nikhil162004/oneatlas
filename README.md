@@ -70,6 +70,15 @@ Filters live in the URL, so a filtered view is a link. Production timings on thi
 five: `/models` 25 ms, `/rankings` 23 ms, `/providers` 24 ms, `/labs` 11 ms, a model page 12 ms —
 each including its SQL.
 
+**Product surface:** a long table pins its column headers (`overflow-x: clip` above 1200px is what
+makes `position: sticky` possible, and the 200px of slack is a classic scrollbar's); one link per row
+whose `::after` covers the whole row, so a click anywhere opens it and the tab order stays at one stop
+per row; the line above the table is the count, the sort in force and one × per active filter, where
+each × is a link deleting exactly that query parameter. Prices print two fixed decimals so a column
+aligns on the point; context labels round to the digit that means something (`262K`, `1.05M`). The
+arithmetic behind the pin (`--chrome-h`, `--pin-top`) is in `DESIGN.md` §Interaction, and the two
+smoke checks named above are what keep it honest.
+
 **Responsive:** below 860px every data table becomes one card per row with labelled lines, so nothing
 scrolls sideways on a phone; `/compare` keeps a swipe with a sticky attribute column instead. Touch
 targets are 44px, inputs 16px (iOS stops zooming), `color-scheme: dark` and `theme-color` stop the
@@ -105,7 +114,7 @@ Ran on 2026-11-21 in the dev sandbox (Node 20, no Postgres, no Chrome):
 ```
 npx prisma validate                       clean
 npx tsc --noEmit                          clean
-npm test                                  21/21 pass
+npm test                                  26/26 pass (normalise, SQL builder, presentation contract)
 npx next build                            clean, 17 routes (10 API + 7 pages), 103 kB shared JS
 npx tsx scripts/ingest.ts --offline fixtures/or_models_full.json --dry
                                           476 records in → 476 models, 60 labs, 476 listings,
@@ -113,6 +122,9 @@ npx tsx scripts/ingest.ts --offline fixtures/or_models_full.json --dry
 npx tsx scripts/ingest.ts --limit 12 --endpoints --dry
                                           12 models → 31 listings across 8 providers
 Hallmark sloplint --tier floor      1 finding left, skipped on purpose (see docs/review-log.md)
+python3 ../unslop/count_tells.py --surface src
+                                          3 tells (23 at the redesign's start): 1 code comment,
+                                          2 one-neutral alpha fades - argued, not open
 npx impeccable detect src/app             no findings in regex mode
 npx impeccable detect .design-scan        110 findings on rendered HTML -> 0 after the redesign
 python3 .../count_tells.py --surface src  23 UI tells -> 2, both kept on purpose
@@ -125,8 +137,8 @@ npx prisma migrate deploy                       applied 20261121000000_init (inc
 npm run ingest                                  476 models, 60 labs, 7 benchmarks, 756 scores, 0 issues
 npm run ingest -- --limit 120 --endpoints         120 models -> 378 listings across 75 providers
 re-ran the identical ingest                       row counts unchanged  -> idempotency proven
-npm run smoke                                   20/20 against the dev server
-NEXT_DIST_DIR=.next-build npx next start        20/20 again against the production build
+npm run smoke                                   22/22 against the dev server
+NEXT_DIST_DIR=.next-build npx next start        22/22 again against the production build
 npm run explain                                 see below
 ```
 

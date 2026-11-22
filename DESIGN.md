@@ -57,7 +57,8 @@ same one `GET /api/models` accepts — `docs/decisions/0006`.
 step plus a hairline at 9% of the text colour: no shadows beyond `0 1px 2px rgb(0 0 0/.05)`, no
 glows, no hue-to-hue gradient, no blurred blob. Type is one webfont — Archivo at 400/500/600 — over
 the platform mono stack for figures; nothing goes heavier than 600 because hierarchy is size and
-colour, not weight. Sizes are 12/13/15/17/18/24/34, spacing 4/8/12/16/24/32/48, one easing curve
+colour, not weight. Sizes are 12/13/15/17/18/24/34 (plus 40/44 for the two display figures), spacing
+4/8/12/16/24/32/48, one easing curve
 `cubic-bezier(.22,1,.36,1)`, transitions name the property they animate and last 120–150 ms.
 
 Two rules the linters enforce and that are easy to break by accident:
@@ -91,6 +92,38 @@ each provider's price spread are drawn as bars whose only other encoding is the 
 The comparison table marks which rows actually differ, server-side, so the feature needs no toggle.
 Everything that is not a value was deleted: no status pills, no icon tiles, no eyebrow labels, no
 entrance animation, no hover lift on a card.
+
+## Interaction, and the arithmetic it depends on
+
+Four things make a table feel like a product rather than a dump, and each one is a piece of arithmetic
+in `globals.css` rather than a taste choice:
+
+- **A pinned column header.** `thead th { position: sticky }` only works if nothing between it and the
+  viewport is a scroll container - so `.tablewrap` switches from `overflow-x: auto` to `overflow-x:
+  clip` at 1200px, which is 1000 (widest table) + 64 (shell gutters) + ~15 (classic scrollbar) with
+  slack, rounded up to the next multiple of 8. At a threshold picked as "wide enough to fit" (1064) a
+  2px table border and a Windows scrollbar would have silently clipped the last column, and `clip`
+  offers no way to scroll it back. Below 1200 the wrapper scrolls sideways and the header moves with
+  it, because losing a column is worse than losing the pin.
+- **The row itself is the target.** One link per row, whose `::after` is absolutely positioned over the
+  `tr`; so the `tr` is `position: relative`, which is only a containing block with
+  `border-collapse: separate` (that is what the pinned header already required, so the two choices
+  share a cause). Nested links take `z-index: 2` or they become unclickable. Tab stops per row: one.
+- **Every filter is removable.** `.subbar` holds the count, the sort in force and one chip per active
+  parameter; a chip's `href` is the same URL minus that one key (`hrefWith`), so "clear this" costs no
+  JavaScript and cannot disagree with the form. A key that is a list (`capabilities`) splits into one
+  chip per value and re-joins the rest; a search term containing a comma deliberately does not split,
+  because half a query is not a filter.
+- **Sticky offsets are arithmetic, not pixels.** `--chrome-row` + `--chrome-top` + 12 = `--chrome-h`,
+  and the table header pins at `--pin-top` (`--chrome-h + --subbar-h` on the one screen that also pins
+  a summary line). The app header is one flex row of declared height, never wrapped, which is what
+  makes the number true. `+1px` is its bottom border.
+
+Numbers in a column align on their decimal point, so `priceLabel` always prints two decimals
+(`$0.50 / $10.00`, never `$0.5 / $10`) and `contextLabel` does the opposite - a context window is a
+magnitude, so 262,144 is `262K`, not `262.14K`. `0` is `Free`, unknown is `—`, and both are pinned in
+`tests/format.test.ts`, because those three strings are the difference between a table that lies and
+one that does not.
 
 ## Definition of done
 

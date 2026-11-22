@@ -38,7 +38,7 @@ export default async function Home() {
     <div className="space-y-12">
       <section className="grid items-end gap-8 lg:grid-cols-[1.15fr_1fr]">
         <div>
-          <h1 className="max-w-[22ch]">
+          <h1 className="display max-w-[20ch]">
             Every AI model on the public catalogue, with who serves it and what each charges.
           </h1>
           <p className="lede mt-4">
@@ -54,11 +54,13 @@ export default async function Home() {
           </div>
         </div>
 
-        <dl className="grid grid-cols-2 gap-2">
+        {/* One panel divided by hairlines, not four floating cards: the numbers belong to the same
+            sentence, and a shared frame is what says so. */}
+        <dl className="statgrid">
           {counters.map(([label, value]) => (
-            <div key={label} className="card card-tight">
+            <div key={label}>
               <dt className="label">{label}</dt>
-              <dd className="num mt-1 text-[34px] leading-none">{value ?? '\u2014'}</dd>
+              <dd className="num stat">{value ?? '\u2014'}</dd>
             </div>
           ))}
         </dl>
@@ -124,7 +126,7 @@ export default async function Home() {
                 {cheap.data.map((m) => (
                   <tr key={m.id}>
                     <td data-title>
-                      <Link className="font-medium" href={`/models/${m.slug}`}>{m.name}</Link>
+                      <Link className="rowlink font-medium" href={`/models/${m.slug}`}>{m.name}</Link>
                       <span className="block text-xs text-[var(--faint)]">{m.lab.name}</span>
                     </td>
                     <td data-label="Capabilities"><CapabilityTags caps={m.capabilities} /></td>

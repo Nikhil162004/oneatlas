@@ -79,7 +79,7 @@ export default async function LabPage({ params }: { params: Promise<{ slug: stri
               {lab.models.map((m) => (
                 <tr key={m.slug}>
                   <td data-title>
-                    <Link className="font-medium" href={`/models/${m.slug}`}>{m.name}</Link>
+                    <Link className="rowlink font-medium" href={`/models/${m.slug}`}>{m.name}</Link>
                     <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-[var(--faint)]">
                       <span className="tag">{m.modelType.toLowerCase()}</span>
                       {m.openWeights && <span className="tag tag-on">open weights</span>}

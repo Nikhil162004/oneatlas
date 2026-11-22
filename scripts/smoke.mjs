@@ -276,5 +276,43 @@ await check('every stacked table cell carries a label, so a phone shows no orpha
   }
 });
 
+await check('a chip on the filter bar removes one parameter and keeps the rest', async () => {
+  // This is the whole promise of the URL-as-state design, so it is worth an assertion: the × has to
+  // be a link that deletes exactly one key. A clear-one link that also drops the search, or that
+  // drops nothing, is a bug a screenshot would never show.
+  const page = await getPage('/models?q=mistral&capabilities=tools,vision&sort=priceLow');
+  assert(page.status === 200, `HTTP ${page.status}`);
+  // Only the document body: the RSC payload at the end of the response repeats this markup as
+  // escaped strings, which would double every count below.
+  const body = page.text.match(/<main id="main">[\s\S]*?<\/main>/)?.[0] ?? page.text;
+  const chips = [...body.matchAll(/<a class="chip-x" href="([^"]*)"[\s\S]*?<\/a>/g)].map((m) => m[1]);
+  assert(chips.length === 3, `expected three chips (search, tools, vision), got ${chips.length}`);
+  const tools = chips.find((h) => h.includes('capabilities=vision'));
+  assert(tools, `no chip removes only the tools capability: ${chips.join(' ')}`);
+  assert(tools.includes('q=mistral'), 'clearing a capability also cleared the search');
+  assert(tools.includes('sort=priceLow'), 'clearing a capability also cleared the sort');
+  assert(!/capabilities=tools/.test(tools) && /capabilities=vision/.test(tools), `tools chip kept or lost the wrong value: ${tools}`);
+  // Exactly one target drops q, and it must carry everything else over unchanged (a comma list
+  // survives as one value, which is what the schema accepted in the first place).
+  const noQ = chips.filter((h) => !/[?&]q=/.test(h));
+  assert(noQ.length === 1, `expected one chip that removes the search, got ${noQ.length}`);
+  assert(/capabilities=tools(%2C|,)vision/.test(noQ[0]), `removing the search lost the capabilities: ${noQ[0]}`);
+  assert(noQ[0].includes('sort=priceLow'), 'removing the search lost the sort');
+  assert(body.includes('Clear all'), 'no way back to the unfiltered list');
+});
+
+await check('a linked row exposes exactly one tab stop', async () => {
+  // The row's click target is a stretched ::after on the name link; the link itself has to stay
+  // unique per row, or the keyboard gets four identical stops per row.
+  const page = await getPage('/models?limit=12');
+  const rows = page.text.match(/<tr[^>]*>[\s\S]*?<\/tr>/g) ?? [];
+  const withLink = rows.filter((r) => /class="rowlink/.test(r));
+  assert(withLink.length >= 10, `only ${withLink.length} of ${rows.length} rows are clickable`);
+  for (const r of withLink) {
+    const n = (r.match(/class="rowlink/g) ?? []).length;
+    assert(n === 1, `a row has ${n} stretched links, one is the maximum`);
+  }
+});
+
 console.log(`\n${pass} passed, ${fail.length} failed`);
 process.exit(fail.length ? 1 : 0);

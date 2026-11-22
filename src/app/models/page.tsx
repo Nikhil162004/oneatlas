@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { listModels, listLabs } from '@/lib/services/catalogue';
 import { hrefWith, toSearchParams, type RawParams } from '@/lib/page';
 import { listQuerySchema, parseQuery, CAPABILITIES, MODEL_TYPES, SORT_KEYS } from '@/lib/validation';
-import { CapabilityTags, Empty, Notice, Pager } from '@/components/ui';
+import { CapabilityTags, Empty, FilterBar, Notice, Pager } from '@/components/ui';
 import { contextLabel, dateLabel, pricePair } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -16,6 +16,20 @@ const CHIP_LABEL: Record<string, string> = {
   vision: 'vision input',
   openWeights: 'open weights',
 };
+
+/* The keys a URL uses to say what is in the table, with the words a person would use for them. The
+   × on a chip deletes exactly this key, which is why the label is not the source of truth: the
+   parameter is. */
+const FILTER_FIELDS: Array<{ key: string; label: string; multi?: boolean }> = [
+  { key: 'q', label: 'search' },
+  { key: 'capabilities', label: 'capability', multi: true },
+  { key: 'type', label: 'type' },
+  { key: 'lab', label: 'lab' },
+  { key: 'minContext', label: 'min context' },
+  { key: 'maxPrice', label: 'max price' },
+  { key: 'free', label: 'free tier only' },
+  { key: 'hideDeprecated', label: 'hiding deprecated' },
+];
 
 const SORT_LABEL: Record<string, string> = {
   released: 'Released',
@@ -53,20 +67,17 @@ export default async function ModelsPage({ searchParams }: { searchParams: Promi
     listLabs(200).catch(() => ({ data: [] })),
   ]);
 
-  const hasFilters = [...sp.keys()].some((k) => k !== 'limit' && k !== 'sort' && k !== 'dir');
+  // limit/sort/dir are how the table is arranged, not what is in it, so they are not filter chips.
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1>Models</h1>
-          <p className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-[var(--muted)]">
-            <span className="num">{meta.total === null ? `${data.length} shown` : `${meta.total} matching`}</span>
-            <span>sorted by {SORT_LABEL[query.sort]}{query.dir === 'asc' ? ', ascending' : ''}</span>
-            {query.q && <span>matching “{query.q}”</span>}
-          </p>
-        </div>
-        {hasFilters && <Link className="text-sm underline text-[var(--muted)]" href="/models">Clear all filters</Link>}
+    <div className="has-subbar space-y-6">
+      <div>
+        <h1>Models</h1>
+        <p className="lede mt-2">
+          Filter by capability, lab, price or context. The form writes the URL, and{" "}
+          <span className="num text-[var(--fg)]">GET /api/models</span> reads the same parameters, so
+          what you are looking at and what the API returns are one query.
+        </p>
       </div>
 
       <form method="get" action="/models" className="card grid gap-4 lg:grid-cols-[2fr_1fr_1fr]">
@@ -134,6 +145,14 @@ export default async function ModelsPage({ searchParams }: { searchParams: Promi
         </div>
       </form>
 
+      <FilterBar
+        path="/models"
+        raw={raw}
+        count={meta.total === null ? `${data.length} shown` : `${meta.total} matching`}
+        note={`sorted by ${SORT_LABEL[query.sort]}${query.dir === 'asc' ? ', ascending' : ''}`}
+        fields={FILTER_FIELDS}
+      />
+
       {!data.length ? (
         <Empty
           title="No model matches those filters"
@@ -167,7 +186,7 @@ export default async function ModelsPage({ searchParams }: { searchParams: Promi
               {data.map((m) => (
                 <tr key={m.id}>
                   <td data-title>
-                    <Link className="font-medium" href={`/models/${m.slug}`}>{m.name}</Link>
+                    <Link className="rowlink font-medium" href={`/models/${m.slug}`}>{m.name}</Link>
                     <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-[var(--faint)]">
                       <span className="tag">{m.modelType.toLowerCase()}</span>
                       {m.lab.name}
