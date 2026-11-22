@@ -150,8 +150,10 @@ one that does not.
 ## Definition of done
 
 Deployed on Vercel + Neon with a seeded database; `npm run verify` and `npm run smoke` green; every
-screen has an empty state and an error state, and answers with the right status code (there is
-deliberately no `loading.tsx`: a streamed shell turns every 404 into a soft 200); `EXPLAIN` output for
+screen has an empty state and an error state, and answers with the right status code (`loading.tsx`
+skeletons exist only on leaf segments that never render a 404 — a streamed shell on a segment that
+can `notFound()` turns that 404 into a soft 200, which smoke caught the first time one was added
+above a detail page); `EXPLAIN` output for
 the filtered list query in the README; 5–10 min Loom that explains the listing table, the keyset
 cursor and why there is no search engine.
 

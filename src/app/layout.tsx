@@ -58,6 +58,7 @@ const NAV = [
   ['/benchmarks', 'Benchmarks'],
   ['/compare', 'Compare'],
   ['/calculator', 'Calculator'],
+  ['/watchlist', 'Watchlist'],
   ['/labs', 'Labs'],
   ['/providers', 'Providers'],
   ['/changes', 'Changes'],

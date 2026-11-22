@@ -15,6 +15,7 @@ import { hrefWith, type RawParams } from '@/lib/page';
 import type { ModelListItem } from '@/lib/present';
 import { fetchApi, syncUrl, queryFromAnchor } from '@/components/live';
 import { AddToCompare } from '@/components/tray';
+import { WatchButton } from '@/components/watchlist';
 
 type Meta = { total: number | null; limit: number; sort: string; dir?: string; nextCursor: string | null };
 type Directory = Array<{ slug: string; name: string; modelCount: number }>;
@@ -306,8 +307,9 @@ export default function ModelsExplorer({
                           {m.lab.name}
                           {m.pricing.free && <span className="flag flag-quiet">free</span>}
                         </span>
-                        <span className="mt-1.5 block">
+                        <span className="mt-1.5 flex flex-wrap gap-2">
                           <AddToCompare slug={m.slug} name={m.name} />
+                          <WatchButton slug={m.slug} name={m.name} />
                         </span>
                       </td>
                       <td data-label="Capabilities"><CapabilityTags caps={m.capabilities} /></td>

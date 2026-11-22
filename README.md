@@ -23,7 +23,7 @@ screen through the API — there is no fixture array in the frontend.
 Next.js (App Router, server components) · React · TypeScript · TailwindCSS · Next.js route handlers ·
 Zod · PostgreSQL · Prisma. Vercel + Neon is the deploy target; nothing here needs anything else.
 
-Fifteen screens, an API index page, seventeen API routes, one Postgres schema. Every screen is
+Sixteen screens, an API index page, eighteen API routes, one Postgres schema. Every screen is
 server-rendered; the four with controls carry a client island that fetches the screen's own API
 and refreshes only its results region, so a filter click never reloads the page, while the URL
 stays the state (`docs/decisions/0008`). Every screen renders from the same service its endpoint does
@@ -85,6 +85,7 @@ DESIGN.md (repo root)       the design document, §API included
 | `/search?q=` | models / labs / providers in three groups | `globalSearch` |
 | `/benchmarks`, `/benchmarks/{slug}` | the benchmarks as subjects: category, unit, direction, scored counts, and every scored model best-first | `listBenchmarks`, `benchmarkDetail` |
 | `/calculator` | a workload (requests/day, tokens in/out) ranked by monthly cost across the cheapest models | `listModels` seed + client arithmetic |
+| `/watchlist` | your watched models (slugs in this browser only): live cheapest prices and the latest recorded change each | `modelsBySlugs` via `GET /api/models/watchlist` |
 | `/changes` | what moved between mirrors: price, spec and capability changes with the run that caused them | `changesFeed` |
 | `/status` | ingest runs, last successful mirror, catalogue counts — whether the daily refresh is alive | `ingestStatus` |
 

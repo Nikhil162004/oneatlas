@@ -238,6 +238,19 @@ h3 {
   background: var(--surface-2);
 }
 
+/* A loading placeholder: the shape of the content in the surface above the page, breathing by
+   opacity only. It stands in during a streamed navigation or a first client fetch; it is a wait
+   indicator, not an entrance, and the reduced-motion block below stills it like everything else. */
+.skeleton {
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  animation: skeleton-pulse 1100ms var(--ease) infinite alternate;
+}
+@keyframes skeleton-pulse {
+  from { opacity: 0.45; }
+  to { opacity: 1; }
+}
+
 /* A copyable command (CopySnippet). Deliberately not `.code`: on a model page the first `.code`
    block is the record-as-JSON, and smoke compares it against the endpoint, so a curl line must
    never be able to impersonate it. */

@@ -79,6 +79,13 @@ const spec = {
         responses: { '200': { description: 'image/svg+xml badge', content: { 'image/svg+xml': {} } }, '404': { description: 'no such model in the mirror' } },
       },
     },
+    '/models/watchlist': {
+      get: {
+        summary: "live rows for a reader's watched slugs, with the latest recorded change each",
+        parameters: [param('ids', str('a,b — up to 50 full slugs, comma-separated or repeated'), true)],
+        responses: ok('watched rows in request order; unknown slugs in meta.missing'),
+      },
+    },
     '/models/compare': {
       get: {
         summary: 'up to six models as one object, for side-by-side diffing',

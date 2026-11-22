@@ -374,6 +374,19 @@ await check('the theme script ships and both schemes are declared in CSS', async
   assert(sheet.includes('#4763ac'), 'light accent missing from the stylesheet');
 });
 
+await check('the watchlist API resolves slugs to live rows and names the missing', async () => {
+  const two = await get('/api/models?limit=2');
+  const ids = two.body.data.map((m) => m.slug).join(',');
+  const res = await get(`/api/models/watchlist?ids=${ids},ghost-lab/ghost-model`);
+  assert(res.status === 200 && res.body.data.length === 2, 'watchlist rows missing');
+  assert(res.body.data.every((r) => 'cheapest' in r && 'latestChange' in r), 'rows lack price or change fields');
+  assert(res.body.meta.missing.includes('ghost-lab/ghost-model'), 'ghost slug not reported missing');
+  const page = await getPage('/watchlist');
+  assert(page.status === 200 && page.text.includes('Watchlist'), 'watchlist page did not render');
+  const empty = await get('/api/models/watchlist');
+  assert(empty.status === 200 && empty.body.data.length === 0, 'empty watchlist should be an empty array, not an error');
+});
+
 await check('a catalogue price is not counted as a provider offer', async () => {
   // The 476 models ingested without --endpoints each carry one listing derived from their own
   // catalogue entry. Counting those as "providers" put a row called "Unknown provider" at the top of

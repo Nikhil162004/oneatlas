@@ -38,6 +38,7 @@ const PAGES = {
   benchmarks: '/benchmarks',
   benchmark: '/benchmarks/aa_engineering',
   calculator: '/calculator',
+  watchlist: '/watchlist',
   changes: '/changes',
   status: '/status',
   api: '/api',

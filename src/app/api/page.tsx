@@ -20,6 +20,7 @@ type Endpoint = readonly [method: string, path: string, returns: string, params:
 const ENDPOINTS: readonly Endpoint[] = [
   ['GET', '/api/models', 'the catalogue: one row per model, with its cheapest price and how many providers serve it', 'q, lab, provider, type, capabilities, minContext, maxPrice, free, hideDeprecated, sort, dir, limit, cursor'],
   ['GET', '/api/models/{lab}/{slug}', 'one model, its per-provider listings, its scores', 'path only; the pair must match a mirrored slug'],
+  ['GET', '/api/models/watchlist', 'live rows for watched slugs: cheapest prices and the latest recorded change each', 'ids=a,b (up to 50, comma or repeated)'],
   ['GET', '/api/models/{lab}/{slug}/alternatives', 'alternatives to one model: same type, shared capabilities, cheapest first', 'path only'],
   ['GET', '/api/models/compare', 'up to six models as one object, so a diff is possible without a client', 'ids=a,b (2–6, comma or repeated)'],
   ['GET', '/api/rankings', 'scored rows, best first, with the benchmark each row belongs to', 'benchmark, category, type, minContext, limit, offset'],

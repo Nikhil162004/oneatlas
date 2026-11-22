@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { changesFeed } from '@/lib/services/catalogue';
 import { Empty, Section } from '@/components/ui';
+import WatchedDigest from '@/components/WatchedDigest';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Changes' };
@@ -29,6 +30,8 @@ export default async function ChangesPage() {
           <Link className="underline" href="/status">Status</Link>; every event names the run that caused it.
         </p>
       </div>
+
+      <WatchedDigest />
 
       {movers.length > 0 && (
         <section>

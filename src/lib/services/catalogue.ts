@@ -624,3 +624,57 @@ export async function benchmarkDetail(slug: string) {
     })),
   };
 }
+
+/** The watchlist read: a reader's own slugs (kept client-side, ADR-less on purpose — see
+ * components/watchlist.tsx) resolved to live rows. Cheapest prices are recomputed from the
+ * listings at read time, and each row carries the model's most recent recorded change, so the
+ * watchlist answers "what do mine cost now, and what moved" in one fetch. Unknown slugs are
+ * reported in meta.missing rather than silently dropped: a watched model leaving the catalogue
+ * is a fact the page should show. */
+export async function modelsBySlugs(slugs: string[]) {
+  const clean = [...new Set(slugs.map((s) => s.trim().toLowerCase()).filter(Boolean))].slice(0, 50);
+  if (!clean.length) return { data: [], meta: { requested: 0, missing: [] as string[] } };
+  const [rows, changes] = await Promise.all([
+    prisma.model.findMany({
+      where: { slug: { in: clean } },
+      include: {
+        lab: { select: { slug: true, name: true } },
+        listings: { select: { promptPer1M: true, completionPer1M: true, providerId: true } },
+      },
+    }),
+    prisma.changeEvent.findMany({
+      where: { modelSlug: { in: clean } },
+      orderBy: { createdAt: 'desc' },
+      take: clean.length * 3,
+      include: { run: { select: { source: true } } },
+    }),
+  ]);
+  const latest = new Map<string, (typeof changes)[number]>();
+  for (const c of changes) if (!latest.has(c.modelSlug)) latest.set(c.modelSlug, c);
+  const bySlug = new Map(rows.map((r) => [r.slug, r]));
+  const data = clean
+    .filter((s) => bySlug.has(s))
+    .map((slug) => {
+      const r = bySlug.get(slug)!;
+      const prompts = r.listings.map((l) => l.promptPer1M).filter((v) => v !== null).map(Number);
+      const completions = r.listings.map((l) => l.completionPer1M).filter((v) => v !== null).map(Number);
+      const c = latest.get(slug);
+      return {
+        slug: r.slug,
+        name: r.name,
+        lab: r.lab,
+        modelType: r.modelType,
+        contextWindow: r.contextWindow,
+        deprecatedAt: r.deprecatedAt?.toISOString() ?? null,
+        cheapest: {
+          prompt: prompts.length ? Math.min(...prompts) : null,
+          completion: completions.length ? Math.min(...completions) : null,
+        },
+        providerCount: new Set(r.listings.map((l) => l.providerId)).size,
+        latestChange: c
+          ? { field: c.field, detail: c.detail, oldValue: c.oldValue, newValue: c.newValue, at: c.createdAt.toISOString(), pctChange: pctChange(c.field, c.oldValue, c.newValue) }
+          : null,
+      };
+    });
+  return { data, meta: { requested: clean.length, missing: clean.filter((s) => !bySlug.has(s)) } };
+}

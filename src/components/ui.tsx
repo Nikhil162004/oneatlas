@@ -150,6 +150,28 @@ export function Empty({ title, hint, action }: { title: string; hint?: string; a
  * click is intercepted and fetched in place, and `total` is only stated on page 1 (keyset paging
  * does not count the rest).
  */
+/**
+ * The wait, shaped like the page: a heading bar and a card of lines. Route-level `loading.tsx`
+ * files render this while the server component reads the database, so a slow query shows the
+ * page's silhouette instead of the previous page freezing or a blank main. Widths step down
+ * irregularly (88/79/70…) because real text never aligns to a grid.
+ */
+export function SkeletonPage({ rows = 6 }: { rows?: number }) {
+  return (
+    <div className="space-y-6" aria-busy="true" aria-label="Loading">
+      <div>
+        <div className="skeleton" style={{ height: 30, width: '34%' }} />
+        <div className="skeleton mt-3" style={{ height: 15, width: '58%' }} />
+      </div>
+      <div className="card space-y-3">
+        {Array.from({ length: rows }, (_, i) => (
+          <div key={i} className="skeleton" style={{ height: 15, width: `${88 - (i % 4) * 8}%` }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function Pager({ params, meta, pageHref }: { params: URLSearchParams; meta: { total: number | null; limit: number; nextCursor: string | null }; pageHref: (cursor: string) => string }) {
   return (
     <nav aria-label="Pagination" className="rowline">

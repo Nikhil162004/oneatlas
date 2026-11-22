@@ -5,6 +5,7 @@ import { slugParamSchema } from '@/lib/validation';
 import { CapabilityTags, Meter, Section, StatRow } from '@/components/ui';
 import CostEstimator from '@/components/CostEstimator';
 import { AddToCompare } from '@/components/tray';
+import { WatchButton } from '@/components/watchlist';
 import CopySnippet from '@/components/CopySnippet';
 import { contextLabel, dateLabel, msLabel, pctLabel, priceLabel, pricePair } from '@/lib/format';
 
@@ -43,6 +44,24 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
       : [];
   const similar = await similarModels(parsed.data.lab, parsed.data.slug).catch(() => null);
   const history = await modelHistory(parsed.data.lab, parsed.data.slug).catch(() => null);
+  // The price trend is drawn from the recorded moves themselves (Batch C events), oldest first,
+  // seeded with the first event's old value so the line starts where the price actually was.
+  const priceSeries = (history?.data ?? [])
+    .filter((h) => h.field === 'input price' && h.newValue !== null && Number.isFinite(Number(h.newValue)))
+    .slice()
+    .sort((a, b) => a.at.localeCompare(b.at));
+  const series: number[] = priceSeries.length
+    ? [
+        priceSeries[0]!.oldValue !== null && Number.isFinite(Number(priceSeries[0]!.oldValue))
+          ? Number(priceSeries[0]!.oldValue)
+          : Number(priceSeries[0]!.newValue),
+        ...priceSeries.map((h) => Number(h.newValue)),
+      ]
+    : [];
+  const sparkMin = series.length ? Math.min(...series) : 0;
+  const sparkMax = series.length ? Math.max(...series) : 0;
+  const sparkSpan = sparkMax - sparkMin || 1;
+  const sparkPoints = series.map((v, i) => `${2 + (i / (series.length - 1)) * 296},${58 - ((v - sparkMin) / sparkSpan) * 52}`).join(' ');
   const modalities = [
     ...(model.inputModalities ?? []).map((m) => `in: ${m}`),
     ...(model.outputModalities ?? []).map((m) => `out: ${m}`),
@@ -66,6 +85,10 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
           </p>
           {model.description && <p className="lede mt-4">{model.description.slice(0, 700)}</p>}
           <p className="mt-4"><CapabilityTags caps={model.capabilities} /></p>
+          <p className="mt-4 flex flex-wrap gap-2">
+            <AddToCompare slug={model.slug} name={model.name} />
+            <WatchButton slug={model.slug} name={model.name} />
+          </p>
         </div>
 
         <div className="card">
@@ -200,6 +223,22 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
       {history && (
         <section>
           <Section id="history" title="History" count={history.data.length} right={<small>recorded by the mirrors, newest first</small>} />
+          {priceSeries.length >= 2 && (
+            <div className="card card-tight mb-4">
+              <p className="label">Input price across {priceSeries.length - 1} recorded {priceSeries.length === 2 ? 'change' : 'changes'}</p>
+              <svg viewBox="0 0 300 64" className="mt-2 w-full" role="img" aria-label={`Input price moved from ${series[0]} to ${series[series.length - 1]} across recorded changes`}>
+                <polyline points={sparkPoints} fill="none" stroke="var(--accent)" strokeWidth="2" />
+                {series.map((v, i) => (
+                  <circle key={i} cx={2 + (i / (series.length - 1)) * 296} cy={58 - ((v - sparkMin) / sparkSpan) * 52} r="2.5" fill="var(--accent)" />
+                ))}
+              </svg>
+              <p className="num mt-1 flex justify-between text-xs text-[var(--faint)]">
+                <span>low {priceLabel(sparkMin)}</span>
+                <span>now {priceLabel(series[series.length - 1] ?? null)}</span>
+                <span>high {priceLabel(sparkMax)}</span>
+              </p>
+            </div>
+          )}
           {history.data.length ? (
             <ul className="space-y-1.5 text-sm">
               {history.data.map((h) => (
