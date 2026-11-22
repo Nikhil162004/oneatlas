@@ -159,9 +159,18 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
         </section>
       )}
 
-      <p className="num text-xs text-[var(--faint)]">
-        JSON: <a className="underline" href={`/api/models/${model.slug}`}>/api/models/{model.slug}</a>
-      </p>
+      {/* The same object, serialised, where a reader can actually see it. Raw JSON is a document and
+          some contexts will not paint one; this page already called the service the endpoint calls,
+          so what is below is not a paraphrase of the response - it is the response's `data`. */}
+      <details className="card card-tight">
+        <summary className="cursor-pointer text-sm">
+          This record as JSON
+          <span className="num ml-2 text-xs text-[var(--faint)]">
+            GET /api/models/{model.slug}
+          </span>
+        </summary>
+        <pre className="code mt-3">{JSON.stringify(model, null, 2)}</pre>
+      </details>
     </div>
   );
 }

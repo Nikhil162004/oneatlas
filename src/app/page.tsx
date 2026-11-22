@@ -50,10 +50,10 @@ export default async function Home() {
             <Link className="btn btn-primary" href="/models">Browse models</Link>
             <Link className="btn" href="/rankings">Rankings</Link>
             <Link className="btn" href="/compare">Compare two</Link>
-            {/* A route handler is a document, not a page: `next/link` would soft-navigate and ask
-                the handler for an RSC payload it cannot produce. A plain <a> is what works, and what
-                `npm run lint:links` keeps true across the whole tree. */}
-            <a className="btn" href="/api/models">Get the JSON</a>
+            {/* /api is a page, so it is a <Link>. The documents it links onward to are plain <a>s:
+                `next/link` soft-navigates and asks the target for an RSC payload, which a route
+                handler cannot produce. `npm run lint:links` keeps both halves of that rule. */}
+            <Link className="btn" href="/api">The JSON API</Link>
           </div>
         </div>
 

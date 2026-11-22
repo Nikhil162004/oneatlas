@@ -73,8 +73,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <main id="main" className="shell py-8">{children}</main>
         <footer className="shell shell-end flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-[var(--line)] py-8 text-xs text-[var(--faint)]">
           <span>OpenRouter public catalogue{mirrored ? `, mirrored ${mirrored}` : ''}{stats?.models ? ` · ${stats.models} models` : ''}</span>
-          <a className="underline" href="/api/models">JSON API</a>
-          <a className="underline" href="/api/stats">stats</a>
+          <Link className="underline" href="/api">JSON API</Link>
         </footer>
       </body>
     </html>

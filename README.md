@@ -23,7 +23,7 @@ screen through the API — there is no fixture array in the frontend.
 Next.js (App Router, server components) · React · TypeScript · TailwindCSS · Next.js route handlers ·
 Zod · PostgreSQL · Prisma. Vercel + Neon is the deploy target; nothing here needs anything else.
 
-Seven screens, ten API routes, one Postgres schema. **No client JavaScript in the pages**: filters,
+Seven screens, an API index page, ten API routes, one Postgres schema. **No client JavaScript in the pages**: filters,
 sorts, cursors and the compare selection are query strings submitted by native `<form>`s, so the URL
 is the state and every screen renders from the same service its endpoint does
 (`docs/decisions/0006-the-url-is-the-state.md`)
@@ -57,12 +57,12 @@ src/lib/query.ts            filters + sort + keyset cursor, one definition of ea
 src/lib/validation.ts       zod at every boundary
 src/lib/api.ts              response envelope, error mapping, cache policy
 src/app/api/*               ten endpoints, all under a versioned contract (see DESIGN.md §API)
-src/app/{models,rankings,…} the seven screens; server components only
+src/app/{models,rankings,api,…} the screens; server components only
 src/lib/services/*          the read side both the pages and the routes call — no page fetches /api
 src/lib/{present,format,page}.ts  row→JSON mapping, number/date display, searchParams→query
 src/components/ui.tsx       badges, empty/error states, pager
 tests/                      node:test over the pure layer: npm test
-scripts/smoke.mjs           25 contract checks against a running server, API *and* HTML
+scripts/smoke.mjs           27 contract checks against a running server, API *and* HTML
 scripts/linkcheck.mjs       no <Link> may point at a route handler (see docs/review-log.md)
 docs/                       references.md, decisions/0001-0007, ui-brief.md, review-log.md, architecture.{html,svg}
 DESIGN.md (repo root)       the design document, §API included
@@ -84,6 +84,14 @@ DESIGN.md (repo root)       the design document, §API included
 Filters live in the URL, so a filtered view is a link. Production timings on this machine, best of
 five: `/models` 25 ms, `/rankings` 23 ms, `/providers` 24 ms, `/labs` 11 ms, a model page 12 ms —
 each including its SQL.
+
+**The API, in the browser:** `/api` is a page, not a bare document. Raw JSON is the wrong thing to
+navigate a UI to — Chrome pretty-prints it, Safari and Firefox offer to download it, and an embedded
+preview pane shows neither, which is exactly how "Get the JSON does nothing" was reported. The index
+lists all ten handlers with a link to each live document, and shows a response body executed at render
+time — not a written example, so the page cannot describe a contract the routes dropped. A model page
+carries its own record in a `<details>` block, deep-equal to what its endpoint returns, which
+`npm run smoke` asserts.
 
 **Product surface:** a long table pins its column headers (`overflow-x: clip` above 1200px is what
 makes `position: sticky` possible, and the 200px of slack is a classic scrollbar's); one link per row
@@ -130,7 +138,7 @@ Ran on 2026-11-21 in the dev sandbox (Node 20, no Postgres, no Chrome):
 npx prisma validate                       clean
 npx tsc --noEmit                          clean
 npm test                                  26/26 pass (normalise, SQL builder, presentation contract)
-npx next build                            clean, 17 routes (10 API + 7 pages), 103 kB shared JS
+npx next build                            clean, 18 routes (10 handlers + 8 pages), 106 kB shared JS
 npx tsx scripts/ingest.ts --offline fixtures/or_models_full.json --dry
                                           476 records in → 476 models, 60 labs, 476 listings,
                                           7 benchmarks / 756 scores, 0 issues
@@ -152,9 +160,9 @@ npx prisma migrate deploy                       applied 20261121000000_init (inc
 npm run ingest                                  476 models, 60 labs, 7 benchmarks, 756 scores, 0 issues
 npm run ingest -- --limit 120 --endpoints         120 models -> 378 listings across 75 providers
 re-ran the identical ingest                       row counts unchanged  -> idempotency proven
-npm run smoke                                   25/25 against the dev server
-NEXT_DIST_DIR=.next-build npx next start        25/25 again against the production build
-npm run lint:links                              no <Link> points at /api/*
+npm run smoke                                   27/27 against a running server
+NEXT_DIST_DIR=.next-build npx next start        27/27 again against the production build
+npm run lint:links                              no <Link> points at a route handler
 npm run explain                                 see below
 ```
 

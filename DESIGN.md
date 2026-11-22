@@ -52,7 +52,7 @@ interesting ones are in `docs/decisions/`.
 
 ## Interface
 
-Seven screens, no client components. Filters, sort, cursor, compare selection and benchmark are
+Eight screens, no client components. Filters, sort, cursor, compare selection and benchmark are
 query-string state submitted by native forms, so a screen is a function of its URL and the URL is the
 same one `GET /api/models` accepts — `docs/decisions/0006`.
 

@@ -29,7 +29,9 @@ function* walk(dir) {
 /* <Link … href="/api/x">, href={`/api/x`}, or href={'/api/x'} - the shapes that reach a handler.
    The href is read from a window after the match rather than from the match itself: the pattern below
    looks ahead at the quote instead of consuming it, so the match text stops before the path. */
-const VIOLATION = /<Link\b(?:[^<>]|\n)*?href\s*=\s*(?:"\/api|`\/api|\{\s*['"`]\/api)/g;
+/* "/api/" is a route handler; bare "/api" is the human-readable index page, and a <Link> to it is
+   correct. The trailing slash is the whole difference, so the pattern has to be as specific as that. */
+const VIOLATION = /<Link\b(?:[^<>]|\n)*?href\s*=\s*(?:"\/api\/|`\/api\/|\{\s*['"`]\/api\/)/g;
 const HREF = /href\s*=\s*[{\s'"`]*(\/api[^'"`\s}]*)/;
 
 const hits = [];

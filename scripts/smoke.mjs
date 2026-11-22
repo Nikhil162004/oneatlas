@@ -365,24 +365,97 @@ await check('the rankings board filters by model category and benchmark family',
 });
 
 await check('every link to an API route resolves as a document, from every screen', async () => {
-  // The complaint was "Get the JSON does nothing", and the cause was a <Link> soft-navigating to a
-  // route handler. lint:links guards the markup; this guards the other half of the promise - that the
-  // href each screen advertises really answers, and answers as JSON, through the same path a browser
-  // takes. A link to a 404 or to an HTML error page is caught here, not on someone's laptop.
+  // The complaint was "Get the JSON does nothing". The cause was a <Link> soft-navigating to a route
+  // handler; the fix has two halves, and this checks the second one - that the href each screen
+  // advertises really answers, with the media type that half promises, through the same path a
+  // browser takes. A link to a 404 or to an HTML error page is caught here, not on someone's laptop.
   const seen = new Set();
   for (const path of ['/', '/models', '/providers', '/rankings', '/labs', '/models/anthropic/claude-fable-5.2']) {
     const page = await getPage(path);
-    const hrefs = [...page.text.matchAll(/href="(\/api\/[a-z0-9/._-]+)"/gi)].map((m) => m[1]);
+    const hrefs = [...page.text.matchAll(/href="(\/api(?:\/[a-z0-9/._{}-]*)?)"/gi)].map((m) => m[1]);
     for (const href of new Set(hrefs)) {
       const res = await fetch(`${BASE}${href}`, { cache: 'no-store' });
       const type = res.headers.get('content-type') ?? '';
       assert(res.status === 200, `${path} links to ${href}, which answered ${res.status}`);
-      assert(type.includes('application/json'), `${path} links to ${href}, which answered ${type}, not JSON`);
+      // /api is the index page (HTML, and the thing a click should land on); /api/anything is a route
+      // handler and must answer JSON. Two different promises, so two different assertions.
+      const want = href === '/api' ? 'text/html' : 'application/json';
+      assert(type.includes(want), `${path} links to ${href}, which answered ${type}, not ${want}`);
       await res.body?.cancel();
       seen.add(href);
     }
   }
-  assert(seen.size >= 2, `only ${seen.size} distinct API links found across six screens - did they all disappear?`);
+  assert(seen.has('/api'), 'no screen links to the API index page');
+  // The screens link to the index, and the index is where the raw documents are advertised - that is
+  // the whole point of the index existing. So the count assertion belongs to /api, not to the app.
+  const idx = await getPage('/api');
+  const docs = new Set([...idx.text.matchAll(/href="(\/api\/[a-z0-9/._-]+)"/gi)].map((m) => m[1]));
+  assert(docs.size >= 7, `the API index advertises only ${docs.size} raw documents`);
+});
+
+await check('the API index documents every route handler, and its printed bodies are real', async () => {
+  // Hand-written prose about generated code is how documentation goes stale, so the two ways this
+  // page could lie are both checked: a route handler existing without being documented, and sample
+  // bodies being invented rather than executed.
+  const { readdirSync, statSync } = await import('node:fs');
+  const walk = (dir, acc = []) => {
+    for (const name of readdirSync(dir)) {
+      const p = `${dir}/${name}`;
+      if (statSync(p).isDirectory()) walk(p, acc);
+      else if (name === 'route.ts') acc.push(p);
+    }
+    return acc;
+  };
+  const handlers = walk('src/app/api').map((p) =>
+    p.replace('src/app', '').replace('/route.ts', '').replace(/\[([^\]]+)\]/g, '{$1}'));
+  assert(handlers.length >= 10, `found only ${handlers.length} route handlers on disk`);
+
+  const page = await getPage('/api');
+  assert(page.status === 200, `the API index answered ${page.status}`);
+  const missing = handlers.filter((h) => !page.text.includes(h));
+  assert(!missing.length, `undocumented route handlers: ${missing.join(', ')}`);
+
+  // Inside <pre> React renders a quote as &quot;, so compare on unescaped text: a check that only
+  // passes on escaped markup would silently never match anything real.
+  const text = page.text.replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&amp;/g, '&');
+  const api = await get('/api/models?limit=2&sort=priceLow');
+  assert(text.includes(`"total": ${api.body.meta.total}`), `the sample does not show the live total of ${api.body.meta.total}`);
+
+  const rejected = await get('/api/models?limit=9999&type=NOT_A_TYPE');
+  assert(rejected.status === 400, `the API stopped rejecting bad params (${rejected.status})`);
+  const { code, message } = rejected.body.error;
+  assert(text.includes(`"code": "${code}"`), `the index does not show the live error code "${code}"`);
+  assert(text.includes(`"message": "${message}"`), `the index does not show the live message "${message}"`);
+  for (const field of Object.keys(rejected.body.error.fields)) {
+    assert(text.includes(`"${field}":`), `the index omits the "${field}" field the API reports`);
+  }
+});
+
+await check('a model page shows the same JSON its endpoint returns', async () => {
+  // The block on the detail page claims to be "this record as JSON". That is only worth saying if it
+  // is comparable to the response body, so compare the parsed objects, not the strings.
+  const first = await get('/api/models?limit=1&sort=released');
+  const slug = first.body.data[0].slug;
+  const [api, page] = await Promise.all([get(`/api/models/${slug}`), getPage(`/models/${slug}`)]);
+  const pre = page.text.match(/<pre class="code[^"]*">([\s\S]*?)<\/pre>/)?.[1];
+  assert(pre, 'the model page renders no JSON block');
+  const unesc = pre.replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  const shown = JSON.parse(unesc);
+  const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  assert(eq([...Object.keys(shown)].sort(), [...Object.keys(api.body.data)].sort()), 'the page and the endpoint expose different fields');
+  assert(eq(shown.slug, api.body.data.slug), 'the block is about a different model than its own label says');
+  assert(eq(shown.providers.length, api.body.data.providers.length), 'provider listing count differs between page and endpoint');
+  assert(eq(shown, api.body.data), 'the inline record and the endpoint response are not the same object');
+  // The block's label names the endpoint it mirrors. That path has to answer, or the page is
+  // advertising an API that does not exist — the class of bug that made this screen twice.
+  const flat = page.text.replace(/<!-- -->/g, '');
+  const advertised = flat.match(/GET (\/api\/models\/[a-z0-9/._-]+)/)?.[1];
+  assert(advertised === `/api/models/${slug}`, `the page advertises "${advertised}" for ${slug}`);
+  const doc = await get(advertised);
+  const ctype = doc.headers.get('content-type') ?? '';
+  assert(doc.status === 200 && ctype.includes('application/json'),
+    `${advertised} answers ${doc.status}/${ctype}, not a readable document`);
 });
 
 console.log(`\n${pass} passed, ${fail.length} failed`);

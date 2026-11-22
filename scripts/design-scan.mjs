@@ -32,6 +32,9 @@ const PAGES = {
   lab: '/labs/mistralai',
   providers: '/providers',
   search: '/search?q=claude',
+  // The API index is a screen too: it has a table, a <pre> and its own spacing, so it gets linted
+  // like one instead of being the one page nobody checks.
+  api: '/api',
 };
 
 await mkdir(OUT, { recursive: true });

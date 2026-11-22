@@ -342,6 +342,25 @@ a.card:hover,
   border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
 }
 
+/* A response body shown as itself. Scrolls both ways rather than wrapping, because wrapped JSON is
+   unreadable and a page-wide horizontal scroll is the bug this whole file exists to avoid. */
+.code {
+  max-height: 340px;
+  overflow: auto;
+  margin: 0;
+  padding: 12px 16px;
+  border: var(--hair);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--muted);
+  font: 400 12px/1.55 var(--font-num);
+  font-variant-numeric: tabular-nums;
+  tab-size: 2;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+
 /* ---------------------------------------------------------------- controls */
 
 .field {
