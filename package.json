@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "NEXT_DIST_DIR=.next-build next build",
+    "postinstall": "prisma generate",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",

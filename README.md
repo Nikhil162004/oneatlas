@@ -53,6 +53,7 @@ prisma/schema.prisma        Lab · Provider · Model · ModelListing · Benchmar
 prisma/sql/search.sql       pg_trgm GIN indexes (Prisma can't state an operator class)
 src/lib/ingest/normalise.ts pure: units, money, slugs, capabilities, benchmarks  ← the tested core
 src/lib/ingest/persist.ts   idempotent upserts + IngestRun audit row
+vercel.json                 framework + build command, so a deploy needs no dashboard folklore
 src/lib/query.ts            filters + sort + keyset cursor, one definition of each
 src/lib/validation.ts       zod at every boundary
 src/lib/api.ts              response envelope, error mapping, cache policy
@@ -201,22 +202,28 @@ python3 ~/.claude/skills/unslop-ui/scripts/count_tells.py --surface src
 The deploy target is the one the brief prefers, and nothing in here needs anything more than it:
 
 ```bash
-# 1. Neon: create a project, copy the pooled connection string.
-# 2. Vercel: import the repo. Framework preset Next.js, which is already correct.
-#    Env vars:  DATABASE_URL (Neon pooled), plus INGEST_TOKEN (any long random string).
-# 3. Build command stays `npm run build`; add the migration to the build so schema and code
-#    arrive together:  prisma migrate deploy && prisma generate && next build
-# 4. Seed once, from the deployed URL:
-#    curl -X POST https://<app>/api/admin/ingest -H "x-ingest-token: $INGEST_TOKEN"
-#    then the endpoint pass:  ...  -H 'content-type: application/json' -d '{"endpoints":true}'
-# 5. A Vercel cron on /api/admin/ingest keeps the mirror fresh; the route is idempotent by
-#    construction (re-running it changed zero row counts - see the ingest block above).
+# 1. Any PostgreSQL: Neon's free project is the shortest path, and the brief names it. Copy the
+#    *pooled* URL (host ends `-pooler`) for the app, the direct URL if you want a psql session.
+# 2. Vercel: import the repo. `vercel.json` pins the framework and the build command, so the deploy
+#    does not depend on anyone remembering a dashboard field.
+#    Env vars:  DATABASE_URL (pooled) and INGEST_TOKEN (any long random string).
+# 3. Migrate from a shell, not from the build:
+#       DATABASE_URL=... npx prisma migrate deploy
+#    A build step that can rewrite a schema under a live reader is how a deploy takes itself down.
+# 4. Seed from a shell too, for the same reason:
+#       DATABASE_URL=... npm run ingest -- --endpoints
+#    A full mirror does not fit inside a Hobby function timeout, and `--limit` slices the first N
+#    models rather than paging, so the endpoint is not a resumable seeding path.
+# 5. Refresh later with POST /api/admin/ingest -H "x-ingest-token: $INGEST_TOKEN". It re-runs the
+#    catalogue pass idempotently (re-running changed zero row counts) and takes no body.
 ```
 
-Two decisions that make this deployable rather than demoable: `prisma generate` runs on
-`postinstall`, so a serverless build never sees a missing client; and every read path is a
-`force-dynamic` server component over a shared service, so there is no cached prerender holding a
-stale snapshot of a catalogue that changes daily.
+Three decisions that make this deployable rather than demoable: `prisma generate` runs on
+`postinstall`, so a serverless build never sees a missing client; every read path is a
+`force-dynamic` server component over a shared service, so no cached prerender holds a stale
+snapshot of a catalogue that changes daily; and `vercel.json` states `next build` as the build
+command because the local `npm run build` deliberately writes to `.next-build` to stop a build
+pulling the chunks out from under a running dev server.
 
 ## Before you push
 
@@ -239,6 +246,13 @@ model unless `--endpoints` is run; capability flags are booleans until the vocab
 user-extensible; price sorts aggregate instead of using a rollup column until listings pass ~20k;
 keyset paging has no backward pages. Each is written next to the code it describes, with the
 condition that would make it the wrong choice.
+
+`npm audit` reports 7 findings, all in transitive deps of `prisma` and `next`, and every "fix" is a
+major (`next` 15→16, `@prisma/client` 6→7, `zod` 3→4). They are pinned on purpose: Zod 3's error
+shape is what `parseQuery` turns into per-field 400s, and Next 16 changes cache-annotation
+semantics that `force-dynamic` is load-bearing for. Nothing here accepts user HTML, and the advisory
+paths are build-time tooling. The majors belong in their own branch with the suite in front of them,
+not in the commit before a demo.
 
 ## AI tooling
 

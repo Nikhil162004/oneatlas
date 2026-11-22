@@ -393,6 +393,21 @@ await check('every link to an API route resolves as a document, from every scree
   assert(docs.size >= 7, `the API index advertises only ${docs.size} raw documents`);
 });
 
+await check('the index row for POST /api/admin/ingest matches the route it describes', async () => {
+  // This one exists because the check before it cannot catch prose being wrong about a handler:
+  // the index advertised `x-ingest-token` and a body of { limit?, endpoints?, dryRun? } for a route
+  // that read `x-internal-token` and parsed no body at all. So compare the page against the source.
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync('src/app/api/admin/ingest/route.ts', 'utf8');
+  const header = src.match(/headers\.get\('([^']+)'\)/)?.[1];
+  assert(header, 'the ingest route reads no auth header, so /api should not claim one');
+  assert(!/request\.(json|text|arrayBuffer)\(\)/.test(src),
+    'the ingest route now parses a body: document it on /api');
+  const page = (await getPage('/api')).text.replace(/<!-- -->/g, '');
+  assert(page.includes(header), `/api does not name the header the route reads (${header})`);
+  assert(!/\{ limit\?/.test(page), '/api still advertises ingest body params the route ignores');
+});
+
 await check('the API index documents every route handler, and its printed bodies are real', async () => {
   // Hand-written prose about generated code is how documentation goes stale, so the two ways this
   // page could lie are both checked: a route handler existing without being documented, and sample

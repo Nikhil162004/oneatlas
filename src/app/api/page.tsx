@@ -27,7 +27,7 @@ const ENDPOINTS: readonly Endpoint[] = [
   ['GET', '/api/labs/{slug}', 'one lab, its models, its release cadence', 'path only'],
   ['GET', '/api/providers', 'providers having at least one endpoint listing: price spread, avg latency and uptime, each with its sample size', 'limit'],
   ['GET', '/api/stats', 'counts, capability coverage, benchmark coverage, newest releases', '—'],
-  ['POST', '/api/admin/ingest', 'mirror the upstream catalogue into Postgres; safe to re-run, and the row counts say so', 'header x-ingest-token; body { limit?, endpoints?, dryRun? }'],
+  ['POST', '/api/admin/ingest', 'mirror the upstream catalogue into Postgres; safe to re-run, and the row counts say so', 'header `x-ingest-token`, and nothing else: one POST mirrors the whole catalogue'],
 ] as const;
 
 export default async function ApiIndex() {
