@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { modelDetail } from '@/lib/services/catalogue';
 import { slugParamSchema } from '@/lib/validation';
 import { CapabilityTags, Meter, Section, StatRow } from '@/components/ui';
-import { contextLabel, dateLabel, msLabel, pctLabel, priceLabel } from '@/lib/format';
+import { contextLabel, dateLabel, msLabel, pctLabel, priceLabel, pricePair } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +26,11 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
   const model = await modelDetail(parsed.data.lab, parsed.data.slug);
   if (!model) notFound();
 
-  const best = model.providers[0];
+  // Provenance is a column, so the page can tell an offer from a listed price. A model mirrored
+  // without its endpoint records has a price and no provider; claiming the latter would be invented.
+  const endpoints = model.providers.filter((x) => x.fromEndpoint);
+  const catalogue = model.providers.find((x) => !x.fromEndpoint) ?? null;
+  const best = endpoints[0] ?? catalogue ?? null;
   const modalities = [
     ...(model.inputModalities ?? []).map((m) => `in: ${m}`),
     ...(model.outputModalities ?? []).map((m) => `out: ${m}`),
@@ -59,13 +63,13 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
             <span className="text-[18px] text-[var(--muted)]"> / {priceLabel(best?.per1M.completion ?? null)}</span>
           </p>
           <p className="mt-1 text-xs text-[var(--faint)]">
-            per 1M tokens, in / out{best ? ` via ${best.provider.name}` : ''}
+            per 1M tokens, in / out{best ? (best.fromEndpoint ? ` via ${best.provider.name}` : ' as listed in the catalogue') : ''}
           </p>
           <div className="mt-4 space-y-2">
             {[
               ['Context', contextLabel(model.contextWindow)],
               ['Max output', contextLabel(model.maxOutputTokens)],
-              ['Providers', model.providers.length || '\u2014'],
+              ['Providers', endpoints.length ? `${endpoints.length}${catalogue ? '' : ''}` : '\u2014'],
               ['Modalities', modalities.length ? modalities.join(', ') : '\u2014'],
             ].map(([label, value]) => (
               <p key={label as string} className="flex items-baseline justify-between gap-4 text-sm">
@@ -81,9 +85,9 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
       </section>
 
       <section id="providers" className="scroll-mt-20">
-        <Section id="providers-h" title="Providers" count={model.providers.length} />
         {/* The anchor outlives the empty state: /models/x/y#providers is a link people paste. */}
-        {model.providers.length ? (
+        <Section id="providers-h" title="Provider endpoints" count={endpoints.length} />
+        {endpoints.length ? (
           <div className="tablewrap">
             <table className="min-w-[980px] text-sm">
               <caption className="sr-only">Every provider endpoint serving this model, cheapest first</caption>
@@ -100,7 +104,7 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
                 </tr>
               </thead>
               <tbody>
-                {model.providers.map((p, i) => (
+                {endpoints.map((p, i) => (
                   <tr key={`${p.provider.slug}-${p.endpoint}-${i}`}>
                     <td>
                       <span className="font-medium">{p.provider.name}</span>
@@ -122,8 +126,16 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
           </div>
         ) : (
           <p className="card card-tight text-sm text-[var(--muted)]">
-            No provider endpoint mirrored for this model. Its specs come from the catalogue entry; the
-            listing endpoints returned nothing.
+            No endpoint mirrored for this model. Its price and context come from the catalogue entry
+            below, which is a listing price rather than an offer from anybody.
+          </p>
+        )}
+        {catalogue && (
+          <p className="num mt-2 flex flex-wrap items-baseline gap-x-3 text-xs text-[var(--faint)]">
+            <span>Catalogue price, not an offer from a provider</span>
+            <span>{pricePair(catalogue.per1M.prompt, catalogue.per1M.completion)} per 1M</span>
+            <span>context {contextLabel(catalogue.contextWindow)}</span>
+            {catalogue.free && <span className="tag tag-on">free</span>}
           </p>
         )}
       </section>
@@ -147,9 +159,8 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
         </section>
       )}
 
-      <p className="text-sm text-[var(--faint)]">
-        This page and <Link className="underline" href={`/api/models/${model.slug}`}>/api/models/{model.slug}</Link> read the same
-        service, so they cannot disagree.
+      <p className="num text-xs text-[var(--faint)]">
+        JSON: <Link className="underline" href={`/api/models/${model.slug}`}>/api/models/{model.slug}</Link>
       </p>
     </div>
   );

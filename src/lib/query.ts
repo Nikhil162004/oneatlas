@@ -55,7 +55,9 @@ export function likeTerm(q: string) {
 const LISTING_AGGREGATE = `
   LEFT JOIN LATERAL (
     SELECT COUNT(*)::int                   AS listings,
-           COUNT(DISTINCT p."providerId")::int AS providers,
+           -- Endpoint listings only: a model with a catalogue price and no mirror of any provider
+           -- endpoint is not "served by 1 provider", it is served by none that we can see.
+           COUNT(DISTINCT CASE WHEN p."source" = 'ENDPOINT' THEN p."providerId" END)::int AS providers,
            MIN(p."promptPer1M")            AS "minPrompt",
            MIN(p."completionPer1M")        AS "minCompletion"
     FROM "ModelListing" p

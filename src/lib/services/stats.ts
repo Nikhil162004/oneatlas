@@ -27,7 +27,9 @@ export async function getStats(): Promise<Stats> {
   const [models, labs, providers, listings, types, coverage, benchmarkCoverage, latest, run] = await Promise.all([
     prisma.model.count(),
     prisma.lab.count(),
-    prisma.provider.count(),
+    // Providers with at least one endpoint listing: a model that only has its catalogue price has
+    // not been shown to be served by anybody.
+    prisma.provider.count({ where: { listings: { some: { source: 'ENDPOINT' } } } }),
     prisma.modelListing.count(),
     prisma.model.groupBy({ by: ['modelType'], _count: { modelType: true } }),
     // COUNT(*) FILTER, not SUM(bool): Postgres has no boolean sum, and Prisma's _sum on a boolean

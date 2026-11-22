@@ -96,6 +96,14 @@ model Model {
 
 /// One price/limit record per (model, provider, endpoint). This table is the product: 1,118
 /// models map to 8,274 listings on the live site, so price is a property of the pair.
+/// Where a price came from: the model's own catalogue entry, or one of its endpoint records.
+/// Without this the product cannot tell "the catalogue lists $8/1M" from "a provider serves it at
+/// $8/1M", which is the difference between a price and an offer.
+enum ListingSource {
+  CATALOGUE
+  ENDPOINT
+}
+
 model ModelListing {
   id        String  @id @default(cuid())
   modelId   String
@@ -118,8 +126,10 @@ model ModelListing {
   uptimePct         Decimal? @db.Decimal(5, 2)
   isFree            Boolean  @default(false)
   status            String?
+  source            ListingSource @default(CATALOGUE)
 
   @@unique([modelId, providerId, endpointName])
+  @@index([source])
   @@index([providerId])
   @@index([promptPer1M])
 }

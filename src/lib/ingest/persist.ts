@@ -103,6 +103,7 @@ export async function persistCatalogue(data: Normalised, source: string): Promis
           uptimePct: l.uptimePct,
           isFree: l.isFree,
           status: l.status,
+          source: l.source,
         };
         return [prisma.modelListing.upsert({
           where: { modelId_providerId_endpointName: { modelId: mid, providerId: pid, endpointName: l.endpointName } },

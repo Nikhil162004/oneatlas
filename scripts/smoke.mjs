@@ -203,7 +203,9 @@ await check('GET /models/{lab}/{slug} renders the provider table; unknown is 404
   const page = await getPage(`/models/${slug}`);
   assert(page.status === 200, `HTTP ${page.status} for ${slug}`);
   assert(page.text.includes(detail.body.data.name), 'model name missing from the page');
-  assert(page.text.includes(`${detail.body.data.providers.length}`), `provider count ${detail.body.data.providers.length} not rendered`);
+  const endpointProviders = detail.body.data.providers.filter((x) => x.fromEndpoint).length;
+  assert(typeof detail.body.data.providers[0].fromEndpoint === 'boolean', 'a listing does not say where it came from');
+  assert(page.text.includes(`${endpointProviders}`), `endpoint count ${endpointProviders} not rendered`);
   assert(/cheapest/.test(page.text), 'no cheapest marker on the price list');
   // The live product deep-links #providers; the anchor is a contract with anyone pasting a link.
   assert(/id="providers"/.test(page.text), 'detail page lost its #providers anchor');
@@ -241,6 +243,21 @@ await check('GET /labs, /providers and a lab page render the directory', async (
   const labRows = (lab.text.match(/href="\/models\/[a-z0-9.-]+\//g) ?? []).length;
   assert(labRows === firstLab.modelCount, `${firstLab.slug}: profile lists ${labRows} models, directory says ${firstLab.modelCount}`);
   assert((await getPage('/labs/ghost')).status === 404, 'unknown lab should be a 404 page');
+});
+
+await check('a catalogue price is not counted as a provider offer', async () => {
+  // The 476 models ingested without --endpoints each carry one listing derived from their own
+  // catalogue entry. Counting those as "providers" put a row called "Unknown provider" at the top of
+  // the directory, and averaging over their null uptimes reported 0.00% availability.
+  const { body } = await get('/api/providers');
+  assert(body.data.length > 0, 'the directory is empty');
+  assert(!body.data.some((p) => /unknown provider/i.test(p.name)), 'the catalogue placeholder is listed as a provider');
+  assert(body.meta.catalogueOnlyListings > 0, 'nothing was excluded, which means ingest has not run both passes');
+  assert(body.data.every((p) => p.listingCount > 0), 'a provider with no endpoint listings is listed');
+  const zero = body.data.filter((p) => p.avgUptimePct === 0 || p.avgLatencyMs === 0);
+  assert(zero.length === 0, `an average of exactly 0 means nulls were read as measurements: ${zero.map((p) => p.name)}`);
+  const stats = await get('/api/stats');
+  assert(stats.body.data.providers === body.data.length, `stats says ${stats.body.data.providers} providers, the directory lists ${body.data.length}`);
 });
 
 console.log(`\n${pass} passed, ${fail.length} failed`);

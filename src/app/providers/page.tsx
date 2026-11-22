@@ -10,7 +10,7 @@ export const metadata = { title: 'Providers' };
  * screen: one model can cost 40x more on one endpoint than another, and a single average hides that.
  */
 export default async function ProvidersPage() {
-  const { data } = await listProviders(200).catch(() => ({ data: [] }));
+  const { data, meta } = await listProviders(200).catch(() => ({ data: [], meta: { limit: 0, catalogueOnlyListings: 0 } }));
   const ceiling = Math.max(1, ...data.map((p) => p.dearestPromptPer1M ?? 0));
   const scale = (v: number | null) => `${Math.round(((v ?? 0) / ceiling) * 100)}%`;
 
@@ -18,7 +18,13 @@ export default async function ProvidersPage() {
     <div className="space-y-6">
       <div>
         <h1>Providers</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">Inference providers in the mirrored catalogue, by how many listings they carry.</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          Providers with at least one mirrored endpoint listing, by how many they carry.{' '}
+          {meta.catalogueOnlyListings > 0 && (
+            <span className="num">{meta.catalogueOnlyListings} catalogue-level prices</span>
+          )}
+          {meta.catalogueOnlyListings > 0 && ' are a model\'s own listed price with no endpoint behind them, so they are not counted as a provider here.'}
+        </p>
       </div>
 
       {!data.length ? (
@@ -69,9 +75,12 @@ export default async function ProvidersPage() {
                     </td>
                     <td className="num text-right">
                       {msLabel(p.avgLatencyMs)}
-                      <span className="block text-[11px] text-[var(--faint)]">{p.latencySamples} sampled</span>
+                      <span className="block text-[11px] text-[var(--faint)]">{p.latencySamples} of {p.listingCount}</span>
                     </td>
-                    <td className="num text-right">{pctLabel(p.avgUptimePct)}</td>
+                    <td className="num text-right">
+                      {pctLabel(p.avgUptimePct)}
+                      <span className="block text-[11px] text-[var(--faint)]">{p.uptimeSamples} of {p.listingCount}</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

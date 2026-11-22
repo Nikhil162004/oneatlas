@@ -59,11 +59,11 @@ docs/                       DESIGN.md, decisions/0001-0006, ui-brief.md, review-
 |---|---|---|
 | `/` | counters, coverage meters, benchmark coverage, cheapest tool-capable models, newest releases | `services/stats` + `listModels` |
 | `/models` | the table: search, type, lab, capabilities, context floor, price ceiling, free, hide-deprecated, 5 sorts, cursor paging | `services/catalogue.listModels` |
-| `/models/{lab}/{slug}` | spec grid, description, **every provider listing** (price, context, quant, p50 latency, 24 h uptime), benchmark strip | `modelDetail` |
+| `/models/{lab}/{slug}` | spec grid, description, **provider endpoints** (price, context, quant, p50 latency, 24 h uptime, cheapest marked), the catalogue price when no endpoint is mirrored, benchmark strip | `modelDetail` |
 | `/compare?ids=a,b` | attributes as rows, up to six models as columns, missing ids named | `compareModels` |
 | `/rankings` | leaderboard, benchmark chips, offset paging with a stated range | `rankings` |
 | `/labs`, `/labs/{slug}` | 60 labs by output; a lab's models plus a month-by-month release cadence | `listLabs`, `labDetail` |
-| `/providers` | who serves what: models, listings, free count, cheapest/avg price, avg latency and uptime | `listProviders` |
+| `/providers` | providers having at least one endpoint listing: models, listings, cheapest/average/dearest price as a spread bar, avg latency and uptime with the sample size | `listProviders` |
 | `/search?q=` | models / labs / providers in three groups | `globalSearch` |
 
 Filters live in the URL, so a filtered view is a link. Production timings on this machine, best of
@@ -80,6 +80,8 @@ tiles, eyebrow labels, status pills or entrance animation.
 ## Reading order for a reviewer
 
 1. `DESIGN.md` — scope, and the list of things deliberately not built.
+1a. `docs/decisions/0007` — why a listing records its own provenance, and the two wrong numbers that
+    happened before it did (`Unknown provider` top of the directory, `0.00%` average uptime).
 2. `docs/decisions/0001` — why `ModelListing` is the centre of the schema.
 3. `docs/decisions/0005` + `src/lib/query.ts` — the keyset cursor, and why one table owns "sorted".
 4. `tests/query.test.ts` — the placeholder-invariant test that keeps hand-built SQL honest.
@@ -114,8 +116,8 @@ npx prisma migrate deploy                       applied 20261121000000_init (inc
 npm run ingest                                  476 models, 60 labs, 7 benchmarks, 756 scores, 0 issues
 npm run ingest -- --limit 120 --endpoints         120 models -> 378 listings across 75 providers
 re-ran the identical ingest                       row counts unchanged  -> idempotency proven
-npm run smoke                                   18/18 against the dev server
-NEXT_DIST_DIR=.next-build npx next start        18/18 again against the production build
+npm run smoke                                   19/19 against the dev server
+NEXT_DIST_DIR=.next-build npx next start        19/19 again against the production build
 npm run explain                                 see below
 ```
 

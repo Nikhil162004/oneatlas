@@ -84,6 +84,21 @@ test('one listing per endpoint, and provider identity is the pair, not the model
   assert.equal(r.listings[1]!.uptimePct, '100.00');
   assert.equal(r.providers.size, 2);
   assert.equal(r.listings[0]!.modelSlug, 'acme/widget-1');
+  // Provenance, because the product says "served by N providers" and an average uptime.
+  assert.equal(r.listings[0]!.source, 'ENDPOINT');
+});
+
+test('a model with no endpoint records gets a catalogue listing, not a fake provider', () => {
+  const only = normalise([raw({ top_provider: { name: 'Nobody' } })]);
+  assert.equal(only.listings.length, 1);
+  assert.equal(only.listings[0]!.source, 'CATALOGUE');
+  // These four are what separates "nobody measured it" from "it measured zero", which is why the
+  // providers directory filters on source rather than on empty columns.
+  assert.equal(only.listings[0]!.uptimePct, null);
+  assert.equal(only.listings[0]!.latencyP50Ms, null);
+  assert.equal(only.listings[0]!.quantization, null);
+  assert.equal(only.listings[0]!.status, null);
+  assert.equal(only.listings[0]!.endpointName, 'default');
 });
 
 test('benchmark nulls are skipped instead of becoming a score of zero', () => {

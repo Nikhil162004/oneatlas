@@ -93,6 +93,8 @@ export type ListingRow = {
   uptimePct: string | null;
   isFree: boolean;
   status: string | null;
+  /** Where the row came from. CATALOGUE means "the model's own listed price", i.e. no provider offer. */
+  source: 'CATALOGUE' | 'ENDPOINT';
 };
 
 export type BenchmarkRow = { slug: string; name: string; category: string; unit: string };
@@ -294,6 +296,7 @@ export function normalise(models: RawModel[], endpoints: Map<string, RawEndpoint
           uptimePct: percentOrNull(e.uptime_last_1d),
           isFree: isZeroPrice(e.pricing),
           status: e.status ? String(e.status) : null,
+          source: 'ENDPOINT' as const,
         });
       }
     } else {
@@ -311,6 +314,7 @@ export function normalise(models: RawModel[], endpoints: Map<string, RawEndpoint
         uptimePct: null,
         isFree: isZeroPrice(raw.pricing),
         status: null,
+        source: 'CATALOGUE' as const,
       });
     }
 

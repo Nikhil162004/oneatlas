@@ -85,6 +85,9 @@ export async function modelDetail(lab: string, slug: string) {
       uptimePct: money(l.uptimePct),
       free: l.isFree,
       status: l.status,
+      // The page splits these: a catalogue-level price is shown as the listing price, not as an
+      // offer from a provider. Provenance is stored, not inferred from empty columns.
+      fromEndpoint: l.source === 'ENDPOINT',
     })),
     benchmarks: model.scores.map((s) => ({ benchmark: s.benchmark, score: Number(s.score) })),
   };
@@ -258,21 +261,39 @@ export async function labDetail(slug: string) {
 }
 
 export async function listProviders(limit = 100) {
-  const rows = await prisma.provider.findMany({
-    take: Math.min(Math.max(limit, 1), 200),
-    orderBy: [{ listings: { _count: 'desc' } }, { name: 'asc' }],
-    select: {
-      slug: true, name: true, website: true,
-      listings: { select: { modelId: true, promptPer1M: true, isFree: true, uptimePct: true, latencyP50Ms: true } },
-    },
-  });
+  // Endpoint-backed listings only. A model whose price came from its own catalogue entry is not a
+  // provider serving anything, and leaving those in made "Unknown provider" the largest row in the
+  // directory and dragged every average uptime to 0 (no measurement, not a bad one).
+  const endpointOnly = { source: 'ENDPOINT' as const };
+  const [rows, catalogueOnly] = await Promise.all([
+    prisma.provider.findMany({
+      where: { listings: { some: endpointOnly } },
+      take: Math.min(Math.max(limit, 1), 200),
+      orderBy: [{ listings: { _count: 'desc' } }, { name: 'asc' }],
+      select: {
+        slug: true, name: true, website: true,
+        listings: {
+          where: endpointOnly,
+          select: { modelId: true, promptPer1M: true, isFree: true, uptimePct: true, latencyP50Ms: true },
+        },
+      },
+    }),
+    prisma.modelListing.count({ where: { source: 'CATALOGUE' } }),
+  ]);
 
+  // Number(null) is 0 and 0 is finite, so a null has to be dropped before the cast or an average
+  // silently becomes a measurement of zero. That is the one mistake this app's own invariant names.
+  const vals = <T,>(xs: Array<T | null>, to: (v: T) => number) =>
+    xs.flatMap((v) => (v === null ? [] : [to(v)])).filter(Number.isFinite);
   const avg = (xs: number[]) => (xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 1e4) / 1e4 : null);
+  const countOf = <T,>(xs: Array<T | null>, to: (v: T) => number) => { const v = vals(xs, to); return { list: v, n: v.length }; };
+
   return {
     data: rows.map((p) => {
-      const prices = p.listings.map((l) => Number(l.promptPer1M)).filter(Number.isFinite);
-      const latencies = p.listings.map((l) => l.latencyP50Ms).filter((v): v is number => v !== null);
-      const uptimes = p.listings.map((l) => Number(l.uptimePct)).filter(Number.isFinite);
+      const prices = vals(p.listings.map((l) => l.promptPer1M), (v) => Number(v));
+      const latencies = countOf(p.listings.map((l) => l.latencyP50Ms), (v) => v);
+      const uptimes = countOf(p.listings.map((l) => l.uptimePct), (v) => Number(v));
+      const uptimeList = uptimes.list.map((u) => Number(u));
       return {
         slug: p.slug,
         name: p.name,
@@ -283,14 +304,13 @@ export async function listProviders(limit = 100) {
         cheapestPromptPer1M: prices.length ? Math.min(...prices) : null,
         dearestPromptPer1M: prices.length ? Math.max(...prices) : null,
         avgPromptPer1M: avg(prices),
-        // The listing count and the latency sample size travel together; without them an average
-        // over two endpoints and an average over 400 look equally authoritative.
-        latencySamples: latencies.length,
-        avgLatencyMs: avg(latencies),
-        avgUptimePct: avg(uptimes),
+        avgLatencyMs: avg(latencies.list),
+        latencySamples: latencies.n,
+        avgUptimePct: avg(uptimeList),
+        uptimeSamples: uptimes.n,
       };
     }),
-    meta: { limit },
+    meta: { limit, endpointBacked: true, catalogueOnlyListings: catalogueOnly },
   };
 }
 
