@@ -23,6 +23,23 @@ const CAP_SHORT: Record<string, string> = {
  * Only the capabilities a model actually has, as tags. A row of five tick-and-cross marks per model
  * repeats what the tags say and makes the table scan like a form; absence is already information.
  */
+export function LabMark({ slug, name }: { slug: string; name: string }) {
+  let hash = 0;
+  for (const ch of slug) hash = (hash * 31 + ch.charCodeAt(0)) % 360;
+  const initials = name
+    .replace(/[^a-zA-Z0-9 ]/g, '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join('');
+  return (
+    <span className="labmark" style={{ background: `hsl(${hash} 32% 34%)` }} aria-hidden="true">
+      {initials || '?'}
+    </span>
+  );
+}
+
 export function CapabilityTags({ caps }: { caps: Record<string, boolean> }) {
   const on = Object.entries(CAP_LABEL).filter(([k]) => caps[k]);
   if (!on.length) return <span className="num text-[11px] text-[var(--faint)]">none recorded</span>;

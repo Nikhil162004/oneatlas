@@ -251,6 +251,30 @@ h3 {
   to { opacity: 1; }
 }
 
+/* A lab's monogram: initials on a hue hashed from the slug, so the same lab wears the same
+   colour on every screen without a logo ever being fetched. It rides beside the name (never
+   instead of it) purely so long tables scan by shape. */
+.labmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  font: 600 10px/1 var(--font-body);
+  letter-spacing: 0.03em;
+  color: #fff;
+  flex: none;
+}
+
+/* The podium figure on rankings and benchmark pages: a rank you can read across the room. */
+.podium-num {
+  font-family: var(--font-num);
+  font-size: 30px;
+  line-height: 1;
+  color: var(--accent);
+}
+
 /* A copyable command (CopySnippet). Deliberately not `.code`: on a model page the first `.code`
    block is the record-as-JSON, and smoke compares it against the endpoint, so a curl line must
    never be able to impersonate it. */

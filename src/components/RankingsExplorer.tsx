@@ -183,6 +183,23 @@ export default function RankingsExplorer({
         ) : (
           <>
             <Section id="board" title={benchmark ? (data[0]?.benchmark.name ?? 'Rankings') : 'Overall'} right={<small className="num">{meta.total} rows</small>} />
+            {meta.offset === 0 && data.length >= 3 && (
+              <ol className="grid gap-3 sm:grid-cols-3">
+                {data.slice(0, 3).map((r) => (
+                  <li key={`podium-${r.model.id}-${r.benchmark.slug}`} className="card card-tight">
+                    <span className="flex items-start justify-between gap-2">
+                      <span className="podium-num">{r.rank}</span>
+                      <span className="num text-right text-lg font-medium">
+                        {view === 'value' && r.value !== null ? r.value.toFixed(0) : r.score.toFixed(2)}
+                        <span className="block text-xs font-normal text-[var(--faint)]">{view === 'value' ? 'score per $' : r.benchmark.name}</span>
+                      </span>
+                    </span>
+                    <Link className="mt-2 block truncate font-medium underline-offset-2 hover:underline" href={`/models/${r.model.slug}`}>{r.model.name}</Link>
+                    <span className="text-xs text-[var(--faint)]">{r.model.lab.name}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
             <div className="tablewrap">
               <table className="stack-sm min-w-[760px] text-sm">
                 <caption className="sr-only">Models ranked by score, best first</caption>

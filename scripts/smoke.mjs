@@ -424,6 +424,19 @@ await check('snippets, share cards and structured data describe the same record'
   assert(lab.text.includes('application/ld+json'), 'no JSON-LD on the lab page');
 });
 
+await check('the home page leads with search and shows what is moving', async () => {
+  const home = await getPage('/');
+  assert(home.status === 200, 'home failed');
+  assert(home.text.includes('id="hero-search"'), 'no hero search field');
+  assert(home.text.includes('Biggest price moves'), 'no movers section on the home page');
+  assert(home.text.includes('Newest releases'), 'no newest releases on the home page');
+  assert(home.text.includes('For developers'), 'footer columns missing');
+  const labs = await getPage('/labs');
+  assert(labs.text.includes('labmark'), 'labs carry no monograms');
+  const rankings = await getPage('/rankings');
+  assert(rankings.text.includes('podium-num'), 'rankings carry no podium');
+});
+
 await check('a catalogue price is not counted as a provider offer', async () => {
   // The 476 models ingested without --endpoints each carry one listing derived from their own
   // catalogue entry. Counting those as "providers" put a row called "Unknown provider" at the top of

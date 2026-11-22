@@ -40,6 +40,23 @@ export default async function BenchmarkPage({ params }: { params: Promise<{ slug
       ) : (
         <>
           <Section id="scores" title="Scores" count={b.scores.length} />
+          {b.scores.length >= 3 && (
+            <ol className="grid gap-3 sm:grid-cols-3">
+              {b.scores.slice(0, 3).map((s) => (
+                <li key={`podium-${s.model.slug}`} className="card card-tight">
+                  <span className="flex items-start justify-between gap-2">
+                    <span className="podium-num">{s.rank}</span>
+                    <span className="num text-right text-lg font-medium">
+                      {s.score}
+                      <span className="block text-xs font-normal text-[var(--faint)]">{b.unit}</span>
+                    </span>
+                  </span>
+                  <Link className="mt-2 block truncate font-medium underline-offset-2 hover:underline" href={`/models/${s.model.slug}`}>{s.model.name}</Link>
+                  <span className="text-xs text-[var(--faint)]">{s.model.lab.name}</span>
+                </li>
+              ))}
+            </ol>
+          )}
           <div className="tablewrap">
             <table className="stack-sm min-w-[800px] text-sm">
               <caption className="sr-only">Models scored on this benchmark, best first</caption>

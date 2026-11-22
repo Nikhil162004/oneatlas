@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { listLabs } from '@/lib/services/catalogue';
-import { Empty, Meter, Section } from '@/components/ui';
+import { Empty, LabMark, Meter, Section } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Labs' };
@@ -30,7 +30,10 @@ export default async function LabsPage() {
               <li key={l.slug}>
                 <Link href={`/labs/${l.slug}`} className="card card-hover block">
                   <span className="flex items-baseline justify-between gap-2">
-                    <span className="font-medium">{l.name}</span>
+                    <span className="flex items-center gap-2">
+                      <LabMark slug={l.slug} name={l.name} />
+                      <span className="font-medium">{l.name}</span>
+                    </span>
                     <span className="num text-[24px] leading-none">{l.modelCount}</span>
                   </span>
                   <span className="mt-2 block"><Meter value={l.modelCount} max={max} /></span>

@@ -106,9 +106,53 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         </header>
         <main id="main" className="shell py-8">{children}</main>
-        <footer className="shell shell-end flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-[var(--line)] py-8 text-xs text-[var(--faint)]">
-          <span>OpenRouter public catalogue{mirrored ? `, mirrored ${mirrored}` : ''}{stats?.models ? ` · ${stats.models} models` : ''}</span>
-          <Link className="underline" href="/api">JSON API</Link>
+        <footer className="shell shell-end border-t border-[var(--line)]">
+          <div className="grid gap-8 py-8 text-sm sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+            <div>
+              <p className="num text-[15px] font-medium tracking-[-0.03em] text-[var(--fg)]">
+                one<span className="text-[var(--accent)]">atlas</span>
+              </p>
+              <p className="mt-2 max-w-[38ch] text-xs leading-relaxed text-[var(--faint)]">
+                OpenRouter public catalogue{mirrored ? `, mirrored ${mirrored}` : ''}
+                {stats?.models ? ` · ${stats.models} models` : ''}. Data refreshes daily; the runs and
+                every price move they find are public.
+              </p>
+              <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                <Link className="underline" href="/status">Ingest status</Link>
+                <Link className="underline" href="/changes">Change feed</Link>
+                <a className="underline" href="/changes.xml">RSS</a>
+              </p>
+            </div>
+            <nav aria-label="Explore">
+              <p className="label">Explore</p>
+              <ul className="mt-2 space-y-1.5 text-[var(--muted)]">
+                <li><Link className="hover:text-[var(--fg)]" href="/models">Models</Link></li>
+                <li><Link className="hover:text-[var(--fg)]" href="/rankings">Rankings</Link></li>
+                <li><Link className="hover:text-[var(--fg)]" href="/benchmarks">Benchmarks</Link></li>
+                <li><Link className="hover:text-[var(--fg)]" href="/compare">Compare</Link></li>
+                <li><Link className="hover:text-[var(--fg)]" href="/calculator">Cost calculator</Link></li>
+              </ul>
+            </nav>
+            <nav aria-label="Discover">
+              <p className="label">Discover</p>
+              <ul className="mt-2 space-y-1.5 text-[var(--muted)]">
+                <li><Link className="hover:text-[var(--fg)]" href="/collections">Collections</Link></li>
+                <li><Link className="hover:text-[var(--fg)]" href="/finder">Model finder</Link></li>
+                <li><Link className="hover:text-[var(--fg)]" href="/labs">Labs</Link></li>
+                <li><Link className="hover:text-[var(--fg)]" href="/providers">Providers</Link></li>
+                <li><Link className="hover:text-[var(--fg)]" href="/watchlist">Watchlist</Link></li>
+              </ul>
+            </nav>
+            <nav aria-label="For developers">
+              <p className="label">For developers</p>
+              <ul className="mt-2 space-y-1.5 text-[var(--muted)]">
+                <li><Link className="hover:text-[var(--fg)]" href="/api">JSON API</Link></li>
+                <li><a className="hover:text-[var(--fg)]" href="/api/openapi.json">OpenAPI document</a></li>
+                <li><a className="hover:text-[var(--fg)]" href="/api/status">API status (JSON)</a></li>
+                <li><a className="hover:text-[var(--fg)]" href="/sitemap.xml">Sitemap</a></li>
+              </ul>
+            </nav>
+          </div>
         </footer>
         <CompareTray />
       </body>

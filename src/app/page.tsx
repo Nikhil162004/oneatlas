@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getStats } from '@/lib/services/stats';
-import { listModels } from '@/lib/services/catalogue';
+import { changesFeed, listModels } from '@/lib/services/catalogue';
+import HeroSearch from '@/components/HeroSearch';
 import { listQuerySchema } from '@/lib/validation';
 import { CapabilityTags, Meter, Section } from '@/components/ui';
 import { contextLabel, dateLabel, pricePair } from '@/lib/format';
@@ -21,10 +22,16 @@ const COVERAGE_LABEL: Record<string, string> = {
  */
 export default async function Home() {
   // `next build` runs this with no database in reach; a missing number must not fail the build.
-  const [stats, cheap] = await Promise.all([
+  const [stats, cheap, changes, newest] = await Promise.all([
     getStats().catch(() => null),
     listModels({ ...listQuerySchema.parse({}), capabilities: ['tools'], sort: 'priceLow', limit: 6 }).catch(() => ({ data: [] })),
+    changesFeed(60).catch(() => ({ data: [], meta: { limit: 60, total: 0 } })),
+    listModels(listQuerySchema.parse({ sort: 'released', limit: 5 })).catch(() => ({ data: [] })),
   ]);
+  const movers = changes.data
+    .filter((c) => c.pctChange !== null)
+    .sort((a, b) => Math.abs(b.pctChange ?? 0) - Math.abs(a.pctChange ?? 0))
+    .slice(0, 5);
 
   const counters: Array<[string, number | undefined]> = [
     ['Models', stats?.models],
@@ -55,6 +62,8 @@ export default async function Home() {
                 handler cannot produce. `npm run lint:links` keeps both halves of that rule. */}
             <Link className="btn" href="/api">The JSON API</Link>
           </div>
+          <HeroSearch />
+          <p className="mt-2 text-xs text-[var(--faint)]">Search the whole catalogue, or press <span className="num">Ctrl/⌘ K</span> anywhere.</p>
         </div>
 
         {/* One panel divided by hairlines, not four floating cards: the numbers belong to the same
@@ -67,6 +76,44 @@ export default async function Home() {
             </div>
           ))}
         </dl>
+      </section>
+
+      <section className="grid gap-8 lg:grid-cols-2">
+        <div>
+          <Section id="movers" title="Biggest price moves" right={<Link className="text-sm underline" href="/changes">the change feed</Link>} />
+          {movers.length ? (
+            <ul className="space-y-2">
+              {movers.map((c) => (
+                <li key={c.id} className="rowline">
+                  <Link className="min-w-0 truncate font-medium underline-offset-2 hover:underline" href={`/models/${c.modelSlug}`}>{c.modelSlug}</Link>
+                  <span className="num shrink-0 text-sm">
+                    {(c.pctChange ?? 0) > 0 ? '+' : ''}{(c.pctChange ?? 0).toFixed(1)}%
+                    <span className="block text-right text-xs font-normal text-[var(--faint)]">{c.field}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-[var(--muted)]">
+              No price moves recorded yet. The daily mirror writes the first ones it finds; they will surface here and at{' '}
+              <Link className="underline" href="/changes">Changes</Link>.
+            </p>
+          )}
+        </div>
+        <div>
+          <Section id="newest" title="Newest releases" right={<Link className="text-sm underline" href="/models?sort=released">all models</Link>} />
+          <ul className="space-y-2">
+            {newest.data.map((m) => (
+              <li key={m.id} className="rowline">
+                <Link className="min-w-0 truncate font-medium underline-offset-2 hover:underline" href={`/models/${m.slug}`}>{m.name}</Link>
+                <span className="num shrink-0 text-sm text-[var(--muted)]">
+                  {m.lab.name}
+                  <span className="block text-right text-xs font-normal text-[var(--faint)]">{dateLabel(m.releaseDate)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       {stats && (
