@@ -245,6 +245,20 @@ await check('GET /labs, /providers and a lab page render the directory', async (
   assert((await getPage('/labs/ghost')).status === 404, 'unknown lab should be a 404 page');
 });
 
+await check('GET /api/providers/{slug} and its page list the same supported models', async () => {
+  const dir = await get('/api/providers?limit=5');
+  const first = dir.body.data[0];
+  const detail = await get(`/api/providers/${first.slug}`);
+  assert(detail.status === 200, `HTTP ${detail.status}`);
+  assert(detail.body.data.models.length === detail.body.data.modelCount, 'profile models disagree with its own count');
+  assert(detail.body.data.models.every((m) => m.slug && m.per1M), 'a supported model lacks a slug or price');
+  const page = await getPage(`/providers/${first.slug}`);
+  assert(page.status === 200 && page.text.includes(first.name), 'provider page did not render its name');
+  assert(page.text.includes(`${detail.body.data.modelCount}`), 'provider page count disagrees with the API');
+  assert((await get(`/api/providers/ghost-provider`)).status === 404, 'unknown provider should be a 404');
+  assert((await getPage('/providers/ghost-provider')).status === 404, 'unknown provider page should be a 404 page');
+});
+
 await check('a catalogue price is not counted as a provider offer', async () => {
   // The 476 models ingested without --endpoints each carry one listing derived from their own
   // catalogue entry. Counting those as "providers" put a row called "Unknown provider" at the top of

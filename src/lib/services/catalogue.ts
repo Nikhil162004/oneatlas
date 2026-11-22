@@ -314,6 +314,79 @@ export async function listProviders(limit = 100) {
   };
 }
 
+/**
+ * One provider: the models it actually serves (endpoint-backed listings only, the same rule the
+ * directory applies), with this provider's own cheapest price on each. The directory answers
+ * "who is out there"; this answers "what would I get from this one", which is the question the
+ * brief's "discover providers and their supported models" is asking.
+ */
+export async function providerDetail(slug: string) {
+  const provider = await prisma.provider.findUnique({
+    where: { slug: slug.toLowerCase() },
+    select: {
+      slug: true,
+      name: true,
+      website: true,
+      listings: {
+        where: { source: 'ENDPOINT' },
+        orderBy: { promptPer1M: 'asc' },
+        select: {
+          promptPer1M: true, completionPer1M: true, isFree: true, latencyP50Ms: true, uptimePct: true,
+          model: {
+            select: {
+              slug: true, name: true, modelType: true, contextWindow: true, releaseDate: true,
+              lab: { select: { name: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!provider || !provider.listings.length) return null;
+
+  const vals = <T,>(xs: Array<T | null>, to: (v: T) => number) =>
+    xs.flatMap((v) => (v === null ? [] : [to(v)])).filter(Number.isFinite);
+  const avg = (xs: number[]) => (xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 1e4) / 1e4 : null);
+
+  // Cheapest listing per model from this provider: listings arrive price-ordered, so the first
+  // sighting of a model is its floor here.
+  const byModel = new Map<string, (typeof provider.listings)[number]>();
+  for (const l of provider.listings) if (!byModel.has(l.model.slug)) byModel.set(l.model.slug, l);
+  const prices = vals(provider.listings.map((l) => l.promptPer1M), (v) => Number(v));
+  const latencies = vals(provider.listings.map((l) => l.latencyP50Ms), (v) => v);
+  const uptimes = vals(provider.listings.map((l) => l.uptimePct), (v) => Number(v));
+
+  return {
+    slug: provider.slug,
+    name: provider.name,
+    website: provider.website,
+    modelCount: byModel.size,
+    listingCount: provider.listings.length,
+    freeCount: provider.listings.filter((l) => l.isFree).length,
+    cheapestPromptPer1M: prices.length ? Math.min(...prices) : null,
+    avgPromptPer1M: avg(prices),
+    dearestPromptPer1M: prices.length ? Math.max(...prices) : null,
+    avgLatencyMs: avg(latencies),
+    latencySamples: latencies.length,
+    avgUptimePct: avg(uptimes),
+    uptimeSamples: uptimes.length,
+    models: [...byModel.values()]
+      .map((l) => ({
+        slug: l.model.slug,
+        name: l.model.name,
+        modelType: l.model.modelType,
+        lab: l.model.lab.name,
+        contextWindow: l.model.contextWindow,
+        releaseDate: l.model.releaseDate,
+        per1M: { prompt: money(l.promptPer1M), completion: money(l.completionPer1M) },
+        latencyP50Ms: l.latencyP50Ms,
+        uptimePct: money(l.uptimePct),
+        free: l.isFree,
+      }))
+      .sort((a, b) => (a.per1M.prompt ?? Infinity) - (b.per1M.prompt ?? Infinity) || a.name.localeCompare(b.name)),
+  };
+}
+
 /** Global search (module 6). Three bounded ILIKE reads rather than one UNION: different shapes,
  * rendered as groups anyway, and perGroup stops a single letter pulling the whole catalogue. */
 export async function globalSearch(q: string, perGroup: number) {

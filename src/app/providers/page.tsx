@@ -54,7 +54,7 @@ export default async function ProvidersPage() {
                 {data.map((p) => (
                   <tr key={p.slug}>
                     <td data-title>
-                      <span className="font-medium">{p.name}</span>
+                      <Link className="font-medium underline-offset-2 hover:underline" href={`/providers/${p.slug}`}>{p.name}</Link>
                       <Link className="ml-2 text-xs text-[var(--faint)] underline" href={`/models?provider=${p.slug}`} aria-label={`models served by ${p.name}`}>
                         models
                       </Link>

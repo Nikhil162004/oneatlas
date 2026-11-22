@@ -26,6 +26,7 @@ const ENDPOINTS: readonly Endpoint[] = [
   ['GET', '/api/labs', 'labs by how much they ship', 'limit'],
   ['GET', '/api/labs/{slug}', 'one lab, its models, its release cadence', 'path only'],
   ['GET', '/api/providers', 'providers having at least one endpoint listing: price spread, avg latency and uptime, each with its sample size', 'limit'],
+  ['GET', '/api/providers/{slug}', 'one provider, the models it serves, with its own cheapest price on each', 'path only'],
   ['GET', '/api/stats', 'counts, capability coverage, benchmark coverage, newest releases', '—'],
   ['POST', '/api/admin/ingest', 'mirror the upstream catalogue into Postgres; safe to re-run, and the row counts say so', 'header `x-ingest-token`, and nothing else: one POST mirrors the whole catalogue'],
 ] as const;
@@ -48,7 +49,7 @@ export default async function ApiIndex() {
       <div>
         <h1>JSON API</h1>
         <p className="lede mt-2">
-          Ten read routes over the same Postgres the screens read, and one write route that refills it.
+          Eleven read routes over the same Postgres the screens read, and one write route that refills it.
           Every page in this app and every endpoint here call the same service function, so the two
           cannot disagree about what a filter or a sort means.
         </p>

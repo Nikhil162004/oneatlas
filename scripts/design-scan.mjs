@@ -31,6 +31,7 @@ const PAGES = {
   labs: '/labs',
   lab: '/labs/mistralai',
   providers: '/providers',
+  provider: '/providers/openai',
   search: '/search?q=claude',
   // The API index is a screen too: it has a table, a <pre> and its own spacing, so it gets linted
   // like one instead of being the one page nobody checks.
