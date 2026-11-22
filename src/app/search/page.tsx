@@ -1,54 +1,68 @@
 import Link from 'next/link';
 import { globalSearch } from '@/lib/services/catalogue';
 import { globalSearchSchema, parseQuery } from '@/lib/validation';
-import { Empty, Notice } from '@/components/ui';
+import { Empty, Notice, Section } from '@/components/ui';
 import { toSearchParams, type RawParams } from '@/lib/page';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Search' };
 
-/** Global lookup across the three directories. A form, not a keystroke handler — same trade as everywhere else here. */
+/** Three bounded lookups, rendered as three groups. A form, not a keystroke handler. */
 export default async function SearchPage({ searchParams }: { searchParams: Promise<RawParams> }) {
   const sp = toSearchParams(await searchParams);
   const parsed = parseQuery(globalSearchSchema, sp);
   const groups = parsed.ok ? await globalSearch(parsed.data.q, parsed.data.perGroup).catch(() => null) : null;
-  const had = parsed.ok && groups && !groups.meta.empty;
+
+  const columns: Array<[string, Array<{ slug: string; name: string; meta: string; href: string }>]> = groups
+    ? [
+        ['Models', groups.data.models.map((m) => ({ slug: m.slug, name: m.name, meta: `${m.lab.name} · ${m.modelType.toLowerCase()}`, href: `/models/${m.slug}` }))],
+        ['Labs', groups.data.labs.map((l) => ({ slug: l.slug, name: l.name, meta: `${l.modelCount} models`, href: `/labs/${l.slug}` }))],
+        ['Providers', groups.data.providers.map((p) => ({ slug: p.slug, name: p.name, meta: `${p.listingCount} listings`, href: '/providers' }))],
+      ]
+    : [];
 
   return (
-    <div className="space-y-5">
-      <h1 className="text-2xl font-semibold">Search</h1>
-      <form method="get" action="/search" className="flex gap-2">
-        <input className="field w-full max-w-md" type="search" name="q" defaultValue={parsed.ok ? parsed.data.q : ''} placeholder="model, lab or provider" />
+    <div className="space-y-8">
+      <div>
+        <h1>Search</h1>
+        <p className="mt-1 text-sm text-[var(--muted)]">Names and slugs, case-insensitive, across models, labs and providers.</p>
+      </div>
+
+      <form method="get" action="/search" className="flex max-w-xl gap-2">
+        <label className="sr-only" htmlFor="q">Search term</label>
+        <input id="q" className="field w-full" type="search" name="q" defaultValue={parsed.ok ? parsed.data.q : ''} placeholder="claude" />
         <button className="btn btn-primary" type="submit">Search</button>
       </form>
+
       {!parsed.ok ? (
-        <Notice>Type at least one character — a search for the empty string would be a table of everything.</Notice>
+        <Notice>Type at least one character.</Notice>
       ) : !groups ? (
-        <Empty title="Search is unavailable" hint="The database did not answer. /api/search is the same query, and it reports its own error." />
+        <Empty title="Search is unavailable" hint="The database did not answer. /api/search runs the same query and reports its own error." />
       ) : groups.meta.empty ? (
-        <Empty title={`Nothing matches \u201c${parsed.data.q}\u201d`} hint="Names are matched as typed, case-insensitive. Try part of a slug, e.g. claude or mistral." />
+        <Empty title={`Nothing matches “${parsed.data.q}”`} hint="Try part of a slug, for example claude or mistral." />
       ) : (
-        <div className="grid gap-6 md:grid-cols-3">
-          {([['Models', groups.data.models.map((m) => ({ slug: m.slug, name: m.name, meta: `${m.lab.name} · ${m.modelType.toLowerCase()}`, href: `/models/${m.slug}` }))],
-             ['Labs', groups.data.labs.map((l) => ({ slug: l.slug, name: l.name, meta: `${l.modelCount} models`, href: `/labs/${l.slug}` }))],
-             ['Providers', groups.data.providers.map((p) => ({ slug: p.slug, name: p.name, meta: `${p.listingCount} listings`, href: `/providers` }))] ] as const).map(([title, items]) => (
+        <div className="grid gap-8 md:grid-cols-3">
+          {columns.map(([title, items]) => (
             <section key={title}>
-              <h2 className="mb-2 text-sm uppercase tracking-wide text-[var(--muted)]">{title} <span className="num">{items.length}</span></h2>
+              <Section id={title} title={title} count={items.length} />
               {items.length ? (
-                <ul className="space-y-1 text-sm">
+                <ul className="space-y-2">
                   {items.map((i) => (
-                    <li key={`${title}-${i.slug}`} className="card">
-                      <Link className="underline-offset-2 hover:underline" href={i.href}>{i.name}</Link>
-                      <p className="text-xs text-[var(--muted)]">{i.meta}</p>
+                    <li key={`${title}-${i.slug}`}>
+                      <Link href={i.href} className="card card-tight card-hover block">
+                        <span className="block font-medium leading-snug">{i.name}</span>
+                        <span className="num mt-0.5 block text-xs text-[var(--faint)]">{i.meta}</span>
+                      </Link>
                     </li>
                   ))}
                 </ul>
-              ) : <p className="text-sm text-[var(--muted)]">none</p>}
+              ) : (
+                <p className="text-sm text-[var(--faint)]">No {title.toLowerCase()} match.</p>
+              )}
             </section>
           ))}
         </div>
       )}
-      {had && null}
     </div>
   );
 }

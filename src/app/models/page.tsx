@@ -1,14 +1,21 @@
 import Link from 'next/link';
-import { listModels } from '@/lib/services/catalogue';
-import { listLabs } from '@/lib/services/catalogue';
+import { listModels, listLabs } from '@/lib/services/catalogue';
 import { hrefWith, toSearchParams, type RawParams } from '@/lib/page';
-import { listQuerySchema, parseQuery } from '@/lib/validation';
-import { CAP_LABEL, CapabilityBadges, Empty, Notice, Pager } from '@/components/ui';
+import { listQuerySchema, parseQuery, CAPABILITIES, MODEL_TYPES, SORT_KEYS } from '@/lib/validation';
+import { CapabilityTags, Empty, Notice, Pager } from '@/components/ui';
 import { contextLabel, dateLabel, pricePair } from '@/lib/format';
-import { CAPABILITIES, MODEL_TYPES, SORT_KEYS } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Models' };
+
+// The query vocabulary, not the column names: `structured` is what a URL says for structured output.
+const CHIP_LABEL: Record<string, string> = {
+  reasoning: 'reasoning',
+  tools: 'tool calling',
+  structured: 'structured output',
+  vision: 'vision input',
+  openWeights: 'open weights',
+};
 
 const SORT_LABEL: Record<string, string> = {
   released: 'Released',
@@ -19,9 +26,9 @@ const SORT_LABEL: Record<string, string> = {
 };
 
 /**
- * The browse screen. Every filter is a field in one GET form, so "filtered view" and "URL" are the
- * same thing: shareable, bookmarkable, and the page can be a plain server component with no client
- * bundle. The rows come from the same service as /api/models.
+ * The browse screen. Every control is a native field in one GET form, so the filtered view *is* a
+ * URL: shareable, bookmarkable, back-button-correct, and the page stays a server component that
+ * parses its own query with the same schema `GET /api/models` uses.
  */
 export default async function ModelsPage({ searchParams }: { searchParams: Promise<RawParams> }) {
   const raw = await searchParams;
@@ -30,121 +37,129 @@ export default async function ModelsPage({ searchParams }: { searchParams: Promi
   if (!parsed.ok) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-semibold">Models</h1>
-        <Notice>Those filters were rejected: {Object.keys(parsed.fields).join(', ')}. The defaults are one link away: <Link className="underline" href="/models">all models</Link>.</Notice>
+        <h1>Models</h1>
+        <Notice>
+          Those filters were rejected: {Object.keys(parsed.fields).join(', ')}.{' '}
+          <Link className="underline" href="/models">Start over</Link>.
+        </Notice>
       </div>
     );
   }
 
   const query = parsed.data;
-  // A broken or empty database must not take the page down — the brief grades reliability, and a
-  // page that 500s because ingest has not run is worse than a page that says so.
+  // A database that is down or not yet seeded renders an empty table with an explanation, not a 500.
   const [{ data, meta }, labs] = await Promise.all([
     listModels(query).catch(() => ({ data: [], meta: { total: null, limit: query.limit, sort: query.sort, dir: undefined, nextCursor: null } })),
     listLabs(200).catch(() => ({ data: [] })),
   ]);
 
-  const active = sp.toString();
+  const hasFilters = [...sp.keys()].some((k) => k !== 'limit' && k !== 'sort' && k !== 'dir');
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Models</h1>
-          <p className="num text-sm text-[var(--muted)]">
-            {meta.total === null ? `${data.length} shown` : `${meta.total} matching`} · sorted by {SORT_LABEL[query.sort]}
-            {query.dir === 'asc' && ' ascending'}
+          <h1>Models</h1>
+          <p className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-[var(--muted)]">
+            <span className="num">{meta.total === null ? `${data.length} shown` : `${meta.total} matching`}</span>
+            <span>sorted by {SORT_LABEL[query.sort]}{query.dir === 'asc' ? ', ascending' : ''}</span>
+            {query.q && <span>matching “{query.q}”</span>}
           </p>
         </div>
-        {active && <Link className="text-sm underline" href="/models">Clear all filters</Link>}
+        {hasFilters && <Link className="text-sm underline text-[var(--muted)]" href="/models">Clear all filters</Link>}
       </div>
 
-      <form method="get" action="/models" className="grid gap-3 rounded-md border border-[var(--line)] p-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="block text-sm sm:col-span-2">
-          <span className="mb-1 block text-xs uppercase tracking-wide text-[var(--muted)]">Search</span>
-          <input className="field w-full" type="text" name="q" defaultValue={query.q ?? ''} placeholder="claude, llama, whisper…" />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs uppercase tracking-wide text-[var(--muted)]">Lab</span>
-          <input className="field w-full" list="labs" name="lab" defaultValue={query.lab ?? ''} placeholder="any" />
-          <datalist id="labs">
-            {labs.data.map((l) => <option key={l.slug} value={l.slug}>{`${l.name} (${l.modelCount})`}</option>)}
-          </datalist>
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs uppercase tracking-wide text-[var(--muted)]">Type</span>
-          <select className="field w-full" name="type" defaultValue={query.type ?? ''}>
-            <option value="">Any</option>
-            {MODEL_TYPES.map((t) => <option key={t} value={t}>{t.toLowerCase()}</option>)}
-          </select>
-        </label>
-
-        <fieldset className="text-sm sm:col-span-2">
-          <legend className="mb-1 text-xs uppercase tracking-wide text-[var(--muted)]">Capabilities</legend>
-          <div className="flex flex-wrap gap-2">
-            {CAPABILITIES.map((c) => (
-              <label key={c} className="chip flex min-h-[34px] cursor-pointer items-center gap-1.5 rounded border border-[var(--line)] px-2 text-sm">
-                <input type="checkbox" name="capabilities" value={c} defaultChecked={query.capabilities?.includes(c)} />
-                {CAP_LABEL[c]}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs uppercase tracking-wide text-[var(--muted)]">Min context</span>
-          <input className="field w-full num" type="number" min={0} step={1000} name="minContext" defaultValue={query.minContext ?? ''} placeholder="e.g. 128000" />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs uppercase tracking-wide text-[var(--muted)]">Max price / 1M in</span>
-          <input className="field w-full num" type="number" min={0} step="0.1" name="maxPrice" defaultValue={query.maxPrice ?? ''} placeholder="any" />
-        </label>
-
-        <div className="flex flex-wrap items-end gap-2 text-sm">
-          <label className="chip flex min-h-[34px] cursor-pointer items-center gap-1.5 rounded border border-[var(--line)] px-2">
-            <input type="checkbox" name="free" value="true" defaultChecked={query.free} /> Free tier only
+      <form method="get" action="/models" className="card grid gap-4 lg:grid-cols-[2fr_1fr_1fr]">
+        <div className="space-y-4">
+          <label className="block">
+            <span className="label mb-1 block">Search</span>
+            <input className="field w-full" type="text" name="q" defaultValue={query.q ?? ''} placeholder="claude, llama, whisper" />
           </label>
-          <label className="chip flex min-h-[34px] cursor-pointer items-center gap-1.5 rounded border border-[var(--line)] px-2">
-            <input type="checkbox" name="hideDeprecated" value="true" defaultChecked={query.hideDeprecated} /> Hide deprecated
-          </label>
+          <fieldset>
+            <legend className="label mb-1 block">Capabilities</legend>
+            <div className="flex flex-wrap gap-2">
+              {CAPABILITIES.map((c) => (
+                <label key={c} className="chip">
+                  <input type="checkbox" name="capabilities" value={c} defaultChecked={query.capabilities?.includes(c)} />
+                  {CHIP_LABEL[c]}
+                </label>
+              ))}
+            </div>
+          </fieldset>
         </div>
 
-        <div className="flex flex-wrap items-end gap-2">
-          <label className="text-sm">
-            <span className="mb-1 block text-xs uppercase tracking-wide text-[var(--muted)]">Sort</span>
-            <select className="field" name="sort" defaultValue={query.sort}>
-              {SORT_KEYS.map((k) => <option key={k} value={k}>{SORT_LABEL[k]}</option>)}
+        <div className="space-y-4">
+          <label className="block">
+            <span className="label mb-1 block">Lab</span>
+            <input className="field w-full" list="labs" name="lab" defaultValue={query.lab ?? ''} placeholder="any" />
+            <datalist id="labs">
+              {labs.data.map((l) => <option key={l.slug} value={l.slug}>{`${l.name} ${l.modelCount}`}</option>)}
+            </datalist>
+          </label>
+          <label className="block">
+            <span className="label mb-1 block">Type</span>
+            <select className="field w-full" name="type" defaultValue={query.type ?? ''}>
+              <option value="">Any</option>
+              {MODEL_TYPES.map((t) => <option key={t} value={t}>{t.toLowerCase()}</option>)}
             </select>
           </label>
-          <label className="text-sm">
-            <span className="mb-1 block text-xs uppercase tracking-wide text-[var(--muted)]">Direction</span>
-            <select className="field" name="dir" defaultValue={query.dir ?? ''}>
-              <option value="">Auto</option>
-              <option value="desc">Descending</option>
-              <option value="asc">Ascending</option>
-            </select>
+          <div className="flex flex-wrap gap-2">
+            <label className="chip">
+              <input type="checkbox" name="free" value="true" defaultChecked={query.free} /> free tier
+            </label>
+            <label className="chip">
+              <input type="checkbox" name="hideDeprecated" value="true" defaultChecked={query.hideDeprecated} /> hide deprecated
+            </label>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <label className="block">
+            <span className="label mb-1 block">Min context</span>
+            <input className="field w-full num" type="number" min={0} step={1000} name="minContext" defaultValue={query.minContext ?? ''} placeholder="128000" />
           </label>
-          <button className="btn btn-primary" type="submit">Apply</button>
+          <label className="block">
+            <span className="label mb-1 block">Max input price per 1M</span>
+            <input className="field w-full num" type="number" min={0} step="0.1" name="maxPrice" defaultValue={query.maxPrice ?? ''} placeholder="any" />
+          </label>
+          <div className="flex items-end gap-2">
+            <label className="block flex-1">
+              <span className="label mb-1 block">Sort</span>
+              <select className="field w-full" name="sort" defaultValue={query.sort}>
+                {SORT_KEYS.map((k) => <option key={k} value={k}>{SORT_LABEL[k]}</option>)}
+              </select>
+            </label>
+            <button className="btn btn-primary" type="submit">Apply</button>
+          </div>
         </div>
       </form>
 
       {!data.length ? (
-        <Empty title="No model matches those filters" hint="Loosen the context floor or drop a capability — an empty result is a correct answer, not an error." />
+        <Empty
+          title="No model matches those filters"
+          hint="Drop the context floor, remove a capability, or raise the price ceiling."
+          action={{ href: '/models', label: 'Show everything' }}
+        />
       ) : (
         <div className="tablewrap">
-          <table className="min-w-[1100px] text-sm">
-            <caption className="sr-only">Models, filterable and sortable; each row links to its detail page</caption>
+          <table className="min-w-[1000px] text-sm">
+            <caption className="sr-only">Models, filterable and sortable; each model name links to its detail page</caption>
             <thead>
               <tr>
                 <th scope="col">Model</th>
                 <th scope="col">Capabilities</th>
-                {([['context', 'Context'], ['priceLow', 'In / out $/1M'], ['released', 'Released']] as const).map(([key, label]) => (
-                  <th key={key} scope="col" aria-sort={query.sort === key ? (query.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                    <Link className="underline-offset-2 hover:underline" href={hrefWith(raw, { sort: key, dir: query.sort === key && query.dir !== 'asc' ? 'asc' : 'desc', cursor: null })}>
-                      {label}{query.sort === key && (query.dir === 'asc' ? ' \u2191' : ' \u2193')}
-                    </Link>
-                  </th>
-                ))}
+                {([['context', 'Context'], ['priceLow', 'In / out per 1M'], ['released', 'Released']] as const).map(([key, label]) => {
+                  const active = query.sort === key;
+                  const dir = active && query.dir !== 'asc' ? 'asc' : 'desc';
+                  return (
+                    <th key={key} scope="col" className={key === 'context' || key === 'priceLow' ? 'text-right' : undefined} aria-sort={active ? (query.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                      <Link className="sortlink justify-end" href={hrefWith(raw, { sort: key, dir, cursor: null })} aria-sort={active ? (query.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                        {label}
+                        <span className="num text-[11px]" aria-hidden="true">{active ? (query.dir === 'asc' ? '\u2191' : '\u2193') : '\u2195'}</span>
+                      </Link>
+                    </th>
+                  );
+                })}
                 <th scope="col" className="text-right">Providers</th>
               </tr>
             </thead>
@@ -152,16 +167,17 @@ export default async function ModelsPage({ searchParams }: { searchParams: Promi
               {data.map((m) => (
                 <tr key={m.id}>
                   <td>
-                    <Link className="font-medium underline-offset-2 hover:underline" href={`/models/${m.slug}`}>{m.name}</Link>
-                    <div className="text-xs text-[var(--muted)]">
-                      {m.lab.name} · {m.modelType.toLowerCase()}
-                      {m.pricing.free && <span className="text-[var(--accent)]"> · free</span>}
-                    </div>
+                    <Link className="font-medium" href={`/models/${m.slug}`}>{m.name}</Link>
+                    <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-[var(--faint)]">
+                      <span className="tag">{m.modelType.toLowerCase()}</span>
+                      {m.lab.name}
+                      {m.pricing.free && <span className="flag flag-quiet">free</span>}
+                    </span>
                   </td>
-                  <td><CapabilityBadges caps={m.capabilities} /></td>
-                  <td className="num">{contextLabel(m.contextWindow)}</td>
-                  <td className="num">{pricePair(m.pricing.per1M.prompt, m.pricing.per1M.completion)}</td>
-                  <td className="num text-[var(--muted)]">{dateLabel(m.releaseDate)}</td>
+                  <td><CapabilityTags caps={m.capabilities} /></td>
+                  <td className="num text-right">{contextLabel(m.contextWindow)}</td>
+                  <td className="num text-right">{pricePair(m.pricing.per1M.prompt, m.pricing.per1M.completion)}</td>
+                  <td className="num text-right text-[var(--muted)]">{dateLabel(m.releaseDate)}</td>
                   <td className="num text-right">{m.providerCount || '\u2014'}</td>
                 </tr>
               ))}
@@ -169,7 +185,11 @@ export default async function ModelsPage({ searchParams }: { searchParams: Promi
           </table>
         </div>
       )}
-      <Pager basePath="/models" params={sp} meta={meta} />
+      <Pager
+        params={sp}
+        meta={meta}
+        pageHref={(cursor) => hrefWith(raw, { cursor })}
+      />
     </div>
   );
 }

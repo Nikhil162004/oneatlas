@@ -1,116 +1,144 @@
 import Link from 'next/link';
 import { compareModels, listModels } from '@/lib/services/catalogue';
 import { compareSchema, listQuerySchema } from '@/lib/validation';
-import { Empty, Notice, CapabilityBadges } from '@/components/ui';
+import { CapabilityTags, Empty, Notice, Section } from '@/components/ui';
 import { contextLabel, dateLabel, pricePair } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Compare' };
 
 /**
- * Compare, with no client JavaScript: the selection lives in `?ids=a,b,c`, a checkbox form writes
- * it, and a remove link rewrites it. That makes a comparison paste-able, which is the one feature
- * of this screen that actually gets used.
+ * Attributes down the left, models across the top, and the selection carried in `?ids=`. Two
+ * consequences worth having: a comparison is a link you can paste, and the "only show differences"
+ * idea does not need client state, because a server render can mark the differing rows itself.
  */
 export default async function ComparePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const raw = await searchParams;
   const fromRepeated = raw.id === undefined ? [] : Array.isArray(raw.id) ? raw.id : [raw.id];
   const fromCsv = raw.ids === undefined ? [] : String(raw.ids).split(',');
-  const ids = [...new Set([...fromRepeated, ...fromCsv].map((s) => s.trim().toLowerCase()).filter(Boolean))].slice(0, 8);
+  const ids = [...new Set([...fromRepeated, ...fromCsv].map((s) => s.trim().toLowerCase()).filter(Boolean))];
 
   const parsed = compareSchema.safeParse({ modelIds: ids.slice(0, 6) });
-  const tooMany = ids.length > 6;
   const selection = parsed.success ? parsed.data.modelIds : [];
 
   const [result, browse] = await Promise.all([
     selection.length >= 2 ? compareModels(selection).catch(() => ({ selected: [], rows: [] })) : Promise.resolve({ selected: [], rows: [] }),
-    // The picker list is the /models query with two overrides, run through the same schema the
-    // route uses, so there is no second definition of "what a valid list query looks like".
+    // The picker is the /models query through the same schema the route uses.
     listModels({ ...listQuerySchema.parse({}), sort: 'released', limit: 24 }).catch(() => ({ data: [] })),
   ]);
 
-  const benchSlugs = [...new Set(result.rows.flatMap((r) => Object.keys(r.benchmarks)))];
+  const rows = result.rows;
+  const benchSlugs = [...new Set(rows.flatMap((r) => Object.keys(r.benchmarks)))];
+  const differs = (values: string[]) => new Set(values).size > 1;
+
+  const attrs: Array<{ label: string; values: string[]; num?: boolean }> = [
+    { label: 'Type', values: rows.map((m) => m.modelType.toLowerCase()) },
+    { label: 'Context', values: rows.map((m) => contextLabel(m.contextWindow)), num: true },
+    { label: 'Max output', values: rows.map((m) => contextLabel(m.maxOutputTokens)), num: true },
+    { label: 'Cheapest in / out per 1M', values: rows.map((m) => pricePair(m.cheapest.prompt, m.cheapest.completion)), num: true },
+    { label: 'Providers', values: rows.map((m) => String(m.providers.length)), num: true },
+    { label: 'Served by', values: rows.map((m) => (m.providers.length ? m.providers.slice(0, 4).map((p) => p.provider).join(', ') : '\u2014')) },
+    { label: 'Released', values: rows.map((m) => dateLabel(m.releaseDate)), num: true },
+    ...benchSlugs.map((b) => ({
+      label: rows.find((r) => r.benchmarks[b])?.benchmarks[b]?.name ?? b,
+      values: rows.map((m) => (m.benchmarks[b] ? m.benchmarks[b].score.toFixed(1) : '\u2014')),
+      num: true,
+    })),
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">Compare</h1>
-        <p className="text-sm text-[var(--muted)]">Two to six models, side by side. {selection.length ? `The URL is the selection: <code>?ids=${selection.join(',')}</code>` : 'Tick models below to build one.'}</p>
-        {tooMany && <Notice>Only the first six of your {ids.length} models are compared — a wider table stops being readable.</Notice>}
+        <h1>Compare</h1>
+        <p className="mt-1 text-sm text-[var(--muted)]">Two to six models, one attribute per row.</p>
+        {ids.length > 6 && (
+          <p className="mt-3">
+            <Notice>Only the first six of your {ids.length} models are compared. Drop one and the table stays readable.</Notice>
+          </p>
+        )}
       </div>
 
-      {selection.length < 2 && (
-        <form method="get" action="/compare" className="rounded-md border border-[var(--line)] p-4">
-          <p className="mb-2 text-sm text-[var(--muted)]">Recently released — tick 2 to 6:</p>
-          <ul className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+      {rows.length ? (
+        <>
+          <Section id="table" title="Side by side" count={rows.length} />
+          <div className="tablewrap compare">
+            <table className="text-sm">
+              <caption className="sr-only">Comparison table with one row per attribute and one column per model</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Attribute</th>
+                  {rows.map((m) => (
+                    <th key={m.id} scope="col">
+                      <Link className="font-medium" href={`/models/${m.slug}`}>{m.name}</Link>
+                      <span className="block text-xs font-normal text-[var(--faint)]">{m.lab.name}</span>
+                      <Link className="mt-1 block text-xs text-[var(--faint)] underline" href={`/compare?ids=${selection.filter((s) => s !== m.slug).join(',')}`}>
+                        Remove
+                      </Link>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {attrs.map((a) => (
+                  <tr key={a.label}>
+                    <th scope="row">{a.label}</th>
+                    {a.values.map((v, i) => (
+                      <td key={i} className={a.num ? 'num' : undefined} style={differs(a.values) ? { color: 'var(--fg)' } : { color: 'var(--muted)' }}>
+                        {v}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+                <tr>
+                  <th scope="row">Capabilities</th>
+                  {rows.map((m) => (
+                    <td key={m.id}><CapabilityTags caps={m.capabilities} /></td>
+                  ))}
+                </tr>
+                <tr>
+                  <th scope="row">Build a link</th>
+                  <td colSpan={rows.length} className="num break-all text-xs text-[var(--faint)]">/compare?ids={selection.join(',')}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : (
+        <Empty
+          title={selection.length ? 'None of those slugs are in the catalogue' : 'Pick two models to start'}
+          hint={selection.length ? 'A compare link only works while both models are mirrored.' : undefined}
+        />
+      )}
+
+      <section>
+        <Section id="picker" title={rows.length ? 'Swap a model in' : 'Recently released'} />
+        <form method="get" action="/compare" className="card">
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {browse.data.map((m) => (
               <li key={m.id}>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="id" value={m.slug} />
-                  <Link className="underline-offset-2 hover:underline" href={`/models/${m.slug}`}>{m.name}</Link>
-                  <span className="num text-xs text-[var(--muted)]">{contextLabel(m.contextWindow)}</span>
+                <label className="chip w-full justify-between">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <input type="checkbox" name="id" value={m.slug} defaultChecked={selection.includes(m.slug)} />
+                    <span className="truncate">{m.name}</span>
+                  </span>
+                  <span className="num text-[11px] text-[var(--faint)]">{contextLabel(m.contextWindow)}</span>
                 </label>
               </li>
             ))}
           </ul>
-          <button className="btn btn-primary mt-3" type="submit">Compare selection</button>
+          <div className="mt-4 flex items-center gap-2">
+            <button className="btn btn-primary" type="submit">Compare selection</button>
+            <a className="btn" href="/compare">Clear</a>
+            <span className="text-xs text-[var(--faint)]">2 to 6 boxes</span>
+          </div>
         </form>
-      )}
-
-      {result.rows.length ? (
-        <div className="tablewrap">
-          <table className="min-w-[720px] text-sm">
-            <caption className="sr-only">Comparison table: one row per attribute, one column per model</caption>
-            <thead>
-              <tr>
-                <th scope="col" className="w-40">Attribute</th>
-                {result.rows.map((m) => (
-                  <th key={m.id} scope="col">
-                    <Link className="font-medium underline-offset-2 hover:underline" href={`/models/${m.slug}`}>{m.name}</Link>
-                    <div className="text-xs font-normal text-[var(--muted)]">{m.lab.name}</div>
-                    <button className="mt-1 text-xs text-[var(--muted)] underline" type="button">
-                      <Link href={`/compare?ids=${selection.filter((s) => s !== m.slug).join(',')}`}>remove</Link>
-                    </button>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <CompareRow label="Type" values={result.rows.map((m) => m.modelType.toLowerCase())} />
-              <CompareRow label="Context" values={result.rows.map((m) => contextLabel(m.contextWindow))} num />
-              <CompareRow label="Max output" values={result.rows.map((m) => contextLabel(m.maxOutputTokens))} num />
-              <CompareRow label="Cheapest in / out" values={result.rows.map((m) => pricePair(m.cheapest.prompt, m.cheapest.completion))} num />
-              <CompareRow label="Providers" values={result.rows.map((m) => String(m.providers.length))} num />
-              <CompareRow label="Served by" values={result.rows.map((m) => (m.providers.length ? m.providers.slice(0, 4).map((p) => p.provider).join(', ') : '\u2014'))} />
-              <CompareRow label="Released" values={result.rows.map((m) => dateLabel(m.releaseDate))} num />
-              <tr>
-                <th scope="row" className="font-normal text-[var(--muted)]">Capabilities</th>
-                {result.rows.map((m) => <td key={m.id}><CapabilityBadges caps={m.capabilities} /></td>)}
-              </tr>
-              {benchSlugs.map((b) => (
-                <CompareRow key={b} label={result.rows.find((r) => r.benchmarks[b])?.benchmarks[b]?.name ?? b} values={result.rows.map((m) => (m.benchmarks[b] ? m.benchmarks[b].score.toFixed(1) : '\u2014'))} num />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : selection.length >= 2 ? (
-        <Empty title="None of those slugs are in the catalogue" hint="Check the ids — a compare link only works while the model is mirrored." />
-      ) : (
-        <p className="text-sm text-[var(--muted)]">Pick at least two models above to see the table.</p>
-      )}
-
-      {result.selected.some((s) => !s.found) && (
-        <Notice>Some of what you asked for could not be loaded: {result.selected.filter((s) => !s.found).map((s) => s.slug).join(', ')}. The table shows the rest.</Notice>
-      )}
+        {result.selected.some((s) => !s.found) && (
+          <p className="mt-3">
+            <Notice>Not loaded: {result.selected.filter((s) => !s.found).map((s) => s.slug).join(', ')}</Notice>
+          </p>
+        )}
+        {!rows.length && <p className="mt-4 text-sm text-[var(--faint)]">Pick at least two models above to see the table.</p>}
+      </section>
     </div>
-  );
-}
-
-function CompareRow({ label, values, num = false }: { label: string; values: string[]; num?: boolean }) {
-  return (
-    <tr>
-      <th scope="row" className="font-normal text-[var(--muted)]">{label}</th>
-      {values.map((v, i) => <td key={i} className={num ? 'num' : undefined}>{v}</td>)}
-    </tr>
   );
 }

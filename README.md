@@ -57,7 +57,7 @@ docs/                       DESIGN.md, decisions/0001-0006, ui-brief.md, review-
 
 | Route | Shows | Where its numbers come from |
 |---|---|---|
-| `/` | counters + capability coverage | `services/stats` |
+| `/` | counters, coverage meters, benchmark coverage, cheapest tool-capable models, newest releases | `services/stats` + `listModels` |
 | `/models` | the table: search, type, lab, capabilities, context floor, price ceiling, free, hide-deprecated, 5 sorts, cursor paging | `services/catalogue.listModels` |
 | `/models/{lab}/{slug}` | spec grid, description, **every provider listing** (price, context, quant, p50 latency, 24 h uptime), benchmark strip | `modelDetail` |
 | `/compare?ids=a,b` | attributes as rows, up to six models as columns, missing ids named | `compareModels` |
@@ -69,6 +69,13 @@ docs/                       DESIGN.md, decisions/0001-0006, ui-brief.md, review-
 Filters live in the URL, so a filtered view is a link. Production timings on this machine, best of
 five: `/models` 25 ms, `/rankings` 23 ms, `/providers` 24 ms, `/labs` 11 ms, a model page 12 ms —
 each including its SQL.
+
+The interface obeys `felipebasurto/unslop-ui`'s surface rules (U17 to U20): depth is a surface step
+plus a hairline, weights stop at 600, spacing is on one scale, transitions name a property and never
+decorate. What the screens gained over the first pass is typographic hierarchy (one webfont, a real
+type ramp, tabular figures), information-bearing bars (coverage, benchmark score, release cadence,
+per-provider price spread), and a marked-difference comparison table — no gradients, glows, icon
+tiles, eyebrow labels, status pills or entrance animation.
 
 ## Reading order for a reviewer
 
@@ -96,7 +103,8 @@ npx tsx scripts/ingest.ts --limit 12 --endpoints --dry
                                           12 models → 31 listings across 8 providers
 Hallmark sloplint --tier floor      1 finding left, skipped on purpose (see docs/review-log.md)
 npx impeccable detect src/app             no findings in regex mode
-npx impeccable detect .design-scan        110 findings on rendered HTML -> 7 (see docs/review-log.md)
+npx impeccable detect .design-scan        110 findings on rendered HTML -> 0 after the redesign
+python3 .../count_tells.py --surface src  23 UI tells -> 2, both kept on purpose
 ```
 
 Ran against a real database afterwards (embedded Postgres 18.7 on port 55432, `node scripts/pg.mjs`):
@@ -132,6 +140,10 @@ npm run verify    # tsc --noEmit && node --test
 npm run build     # writes .next-build, so it can run with the dev server up (npm run clean resets both)
 npm run lint:design       # impeccable detect over src/app, via npx (no install)
 npm run lint:screens      # render the 7 pages into .design-scan/ and run the element rules on them
+
+# the UI anti-slop gate (a third-party skill, not vendored here):
+npx skills add felipebasurto/unslop-ui -g
+python3 ~/.claude/skills/unslop-ui/scripts/count_tells.py --surface src
 # Hallmark's floor gate is not vendored here (it is a third-party skill). Run it from a checkout:
 #   npx skills add nutlope/hallmark -g
 #   node ~/.claude/skills/hallmark/scripts/sloplint.mjs src/app docs/architecture.html --tier floor

@@ -281,7 +281,11 @@ export async function listProviders(limit = 100) {
         listingCount: p.listings.length,
         freeCount: p.listings.filter((l) => l.isFree).length,
         cheapestPromptPer1M: prices.length ? Math.min(...prices) : null,
+        dearestPromptPer1M: prices.length ? Math.max(...prices) : null,
         avgPromptPer1M: avg(prices),
+        // The listing count and the latency sample size travel together; without them an average
+        // over two endpoints and an average over 400 look equally authoritative.
+        latencySamples: latencies.length,
         avgLatencyMs: avg(latencies),
         avgUptimePct: avg(uptimes),
       };

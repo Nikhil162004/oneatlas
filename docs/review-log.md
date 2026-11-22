@@ -32,7 +32,18 @@ Nothing here is decoration: an unaddressed finding is a bug I chose. Skips carry
 
 ## The lesson I would repeat differently
 
+| `unslop-ui` (`count_tells.py --surface`, felipebasurto/unslop-ui) | `src` | **23 candidates**: 12 `U1 eyebrow`, 4 `U6` status chains, 7 em-dashes in prose | **2 left**, both kept on purpose below. Uppercase letterspaced micro-labels became sentence-case `.label`; `·`-chained fact rows became separate elements; prose em-dashes rewritten. U17 fired twice: a tone-shift gradient (allowed by the rule's own exception) and a track gradient, which I replaced with a solid |
+| `npm run lint:screens` (impeccable, element rules) | the redesigned screens | 17 findings on the new CSS: 8 `side-tab`, 9 `cramped-padding` | **0.** The row-hover 2px inset shadow is exactly the "bar down one side of a box" tell, so it is gone and the row tint does that job alone; the table's background moved onto `table` so nothing sits flush against a filled box |
+| `unslop-ui` guardrails | home + detail copy | the hero had a slogan-ish second line and the compare screen explained that its selection lives in the URL (a leaked design note, U5) | Hero states what the product holds; the URL explanation left the interface and stayed in these docs. The counter's own instruction, "never add a number you cannot point to in the code", also deleted a hardcoded \"all 87\" on the home screen: it links to the query instead |
+| `unslop-ui` kept items | `normalise.ts:357`, `globals.css:50` | a `·` chain inside a code comment, and a one-neutral tone shift on `body` | **Not slop, and I am not editing to please a regex.** The comment is not UI text; the gradient goes from 3.5% white to transparent inside one hue, which U17 exempts explicitly |
+| `impeccable` advisory | `/providers` | 143 em-dashes | Kept: those are empty table cells meaning "not mirrored", the same glyph as every unknown value in the app. The advisory is about prose cadence |
+
 ## What the rendered-HTML pass changed about my method
+
+The trick worth keeping: both design gates are runnable here without a browser, because I made the
+artifact they need (`curl` the pages, inline the stylesheet, hand the directory over) and because the
+unslop counter is a plain Python script. Then I redesigned *against* those numbers rather than
+against taste, and the numbers went 110 to 0 and 23 to 2.
 
 The regex mode of `impeccable detect` told me nothing for three rounds because it was reporting on
 source text, not on a page. Running it over saved HTML plus the compiled stylesheet produced 110

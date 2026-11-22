@@ -1,46 +1,441 @@
 @import 'tailwindcss';
 
-:root { --bg: #0b0c0e; --fg: #e8e8ea; --muted: #9a9aa3; --faint: #8e9099; --line: #23252a; --panel: #14161a; --accent: #7dd3a0; }
-html, body { background: var(--bg); color: var(--fg); overflow-x: clip; }
-body { font: 15px/1.55 ui-sans-serif, system-ui, sans-serif; }
-a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.num { font-variant-numeric: tabular-nums; }
-.skip { position: absolute; left: -9999px; }
-.skip:focus { left: 1rem; top: 1rem; z-index: 50; background: var(--fg); color: var(--bg); padding: .5rem .75rem; border-radius: 4px; }
+/*
+  Design tokens. One place, because the value of a token system is that a screen cannot drift.
+  Constraints this file obeys deliberately, all of them from the unslop-ui surface rules (U17-U20)
+  and the impeccable floor gate:
+  - depth = a surface step plus a hairline at 6-10% of the text colour. No glows, no hue-to-hue
+    gradients, no blurred blobs.
+  - spacing on the 4/8/12/16/20/24/32/48 scale; card padding one value for siblings.
+  - weights 400 to 600 only: hierarchy comes from size and colour, not from going black.
+  - one easing curve, transitions name the property they animate, nothing animates on entry.
+  Padding and font sizes here are px, not Tailwind spacing tokens, so a static design checker can
+  resolve them: calc(var(--spacing) * 3) reads as "no padding" to anything without a browser, and a
+  gate nobody can re-derive is decoration.
+*/
+:root {
+  --bg: #08090b;
+  --surface: #0e1014;
+  --surface-2: #14171c;
+  --fg: #e8eaee;
+  --muted: #a4a8b2;
+  --faint: #8b8f9a;
+  --line: rgb(232 234 238 / 0.09);
+  --line-2: rgb(232 234 238 / 0.16);
+  --accent: #74e0a4;
+  --accent-ink: #04150c;
+  --warn: #e8b44c;
 
-/* Form controls. Every one of these is a native element — the only custom control in the app is
-   the row picker, which is a <label> around a checkbox. */
+  --font-body: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-num: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Menlo, monospace;
+
+  --r: 8px;
+  --r-sm: 6px;
+  --hair: 1px solid var(--line);
+  --raise: 0 1px 2px rgb(0 0 0 / 0.05);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--fg);
+  overflow-x: clip;
+}
+
+/* One static tone shift inside a single neutral, which U17 allows, to keep a full-width page from
+   reading as a flat black sheet. No blob, no second hue, nothing that moves. */
+body {
+  font: 400 15px/1.6 var(--font-body);
+  background-image: linear-gradient(to bottom, rgb(232 234 238 / 0.035), rgb(232 234 238 / 0) 420px);
+  font-synthesis-weight: none;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--line-2);
+  transition: color 150ms var(--ease), text-decoration-color 150ms var(--ease);
+}
+a:hover {
+  text-decoration-color: var(--accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+}
+.skip:focus {
+  left: 16px;
+  top: 16px;
+  z-index: 50;
+  background: var(--fg);
+  color: var(--bg);
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+}
+
+/* ---------------------------------------------------------------- typography */
+
+h1,
+h2,
+h3 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+h1 {
+  font-size: 34px;
+}
+h2 {
+  font-size: 18px;
+}
+h3 {
+  font-size: 15px;
+}
+
+/* Section heading with a rule that runs to the edge: marks the block without boxing it. */
+.section {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.section > span {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.section small {
+  font-size: 13px;
+  color: var(--faint);
+}
+
+/* Field and column labels: sentence case, no letterspacing. Uppercase micro-labels on every
+   heading are the single most reliable "generated UI" tell (U1). */
+.label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--faint);
+}
+
+.lede {
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+
+/* ---------------------------------------------------------------- surfaces */
+
+.card {
+  background: var(--surface);
+  border: var(--hair);
+  border-radius: var(--r);
+  padding: 16px;
+}
+.card-tight {
+  padding: 12px 16px;
+}
+
+/* Only interactive surfaces change on hover, and only in colour (U20). */
+a.card:hover,
+.card-hover:hover {
+  border-color: var(--line-2);
+  background: var(--surface-2);
+}
+
+.rowline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: var(--hair);
+  border-radius: var(--r);
+  padding: 12px 16px;
+  background: var(--surface);
+}
+
+/* ---------------------------------------------------------------- data bits */
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border: var(--hair);
+  border-radius: 4px;
+  font-family: var(--font-num);
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.tag-on {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* A value bar. The track is a hairline, the number is the truth, and the bar is the only encoding
+   of magnitude besides the text - U14 allows two, this is two. */
+.meter {
+  position: relative;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+.meter::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--v, 0%);
+  background: var(--accent);
+  border-radius: inherit;
+}
+
+/* Price spread: min to max with the average marked. Real numbers, no axis, no gridlines (U15). */
+.spread {
+  position: relative;
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.spread::before {
+  content: '';
+  position: absolute;
+  left: var(--from, 0%);
+  width: calc(var(--to, 100%) - var(--from, 0%));
+  top: 0;
+  bottom: 0;
+  background: var(--accent);
+  border-radius: 2px;
+}
+.spread::after {
+  content: '';
+  position: absolute;
+  left: var(--avg, 50%);
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--fg);
+}
+
+.flag {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 4px;
+  font-family: var(--font-num);
+  font-size: 11px;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-radius: 3px;
+}
+.flag-quiet {
+  background: transparent;
+  color: var(--accent);
+  border: var(--hair);
+}
+.flag-warn {
+  background: transparent;
+  color: var(--warn);
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+}
+
+/* ---------------------------------------------------------------- controls */
+
 .field {
-  background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
-  color: var(--fg); padding: .4rem .55rem; font: inherit; font-size: 14px; min-height: 34px;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  color: var(--fg);
+  padding: 6px 10px;
+  min-height: 34px;
+  font: 400 14px/1.4 var(--font-body);
+  transition: border-color 150ms var(--ease), background-color 150ms var(--ease);
 }
-.field:focus { border-color: var(--accent); }
+.field::placeholder {
+  color: var(--faint);
+}
+.field:hover {
+  border-color: rgb(232 234 238 / 0.24);
+}
+.field:focus {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
 .btn {
-  display: inline-flex; align-items: center; gap: .4rem; min-height: 34px; padding: .35rem .8rem;
-  border: 1px solid var(--line); border-radius: 4px; background: var(--panel); color: var(--fg);
-  font-size: 14px; cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--fg);
+  font: 500 14px/1.4 var(--font-body);
+  cursor: pointer;
+  transition: border-color 150ms var(--ease), background-color 150ms var(--ease), transform 120ms var(--ease);
 }
-.btn:hover { border-color: var(--accent); }
-.btn-primary { background: var(--accent); color: #0b0c0e; border-color: var(--accent); font-weight: 600; }
-/* A checkbox rendered as a toggle chip: still one input, still keyboard-operable, no JS. */
-.chip:has(input:checked) { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--panel)); }
-.chip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn:hover {
+  border-color: var(--accent);
+}
+.btn:active {
+  transform: scale(0.98);
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 600;
+}
 
-/* Card and table chrome. Padding is in px, not a Tailwind spacing token: a design checker that
-   cannot evaluate calc(var(--spacing) * 3) reports every card as flush, and a reviewer cannot tell
-   that report apart from a real one. */
-.card { border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
-.tablewrap { overflow-x: auto; }
-/* One bordered row of label + number (the coverage tiles on the home screen). */
-.rowline { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+/* A checkbox rendered as a chip. Still one input, still keyboard-operable, no JS: the checked state
+   is the filter's state, which is the URL's state. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  color: var(--muted);
+  cursor: pointer;
+  background: transparent;
+  transition: border-color 150ms var(--ease), color 150ms var(--ease), background-color 150ms var(--ease);
+}
+.chip:hover {
+  color: var(--fg);
+  border-color: var(--accent);
+}
+.chip input {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+}
+.chip:has(input:checked) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.chip:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 
-/* The frame sits on the table, not the scroll wrapper: the wrapper exists only to scroll, and a
-   bordered box whose child spans it edge to edge reads as flush even though every cell is padded.
-   `separate` + zero spacing is what lets the corners round. */
-table { border-collapse: separate; border-spacing: 0; width: 100%; border: 1px solid var(--line); border-radius: 6px; }
-th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
-tbody tr:hover { background: var(--panel); }
-/* Without this the last row's own rule and the table's frame stack into a 2px line. */
-tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
+/* a sort control inside a header cell: the whole cell is the target, not just the words */
+.sortlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  color: inherit;
+}
+.sortlink:hover {
+  color: var(--fg);
+}
+.sortlink[aria-sort='ascending'],
+.sortlink[aria-sort='descending'] {
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------------- tables */
+
+.tablewrap {
+  overflow-x: auto;
+  border-radius: var(--r);
+}
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  border: var(--hair);
+  border-radius: var(--r);
+  background: var(--surface);
+}
+th,
+td {
+  text-align: left;
+  padding: 10px 16px;
+  border-bottom: var(--hair);
+  vertical-align: top;
+}
+th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--faint);
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  white-space: nowrap;
+}
+tbody tr {
+  transition: background-color 120ms var(--ease);
+}
+tbody tr:hover {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+tbody tr:last-child td,
+tbody tr:last-child th {
+  border-bottom: 0;
+}
+/* On /compare the attribute column is the reading anchor, so it stays when the models scroll. */
+.compare th[scope='row'] {
+  position: sticky;
+  left: 0;
+  background: var(--surface);
+  z-index: 1;
+  font-weight: 500;
+  color: var(--muted);
+  min-width: 148px;
+}
+.compare thead th {
+  min-width: 180px;
+}
+.compare td {
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+}
+
+@media (max-width: 720px) {
+  h1 {
+    font-size: 26px;
+  }
+  .lede {
+    font-size: 16px;
+  }
+  th,
+  td {
+    padding: 10px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    animation: none !important;
+  }
+}

@@ -19,10 +19,12 @@ export type Stats = {
   coverage: { reasoning: number; tools: number; structuredOutput: number; visionInput: number; openWeights: number };
   benchmarks: Array<{ name: string; scored: number }>;
   latest: Array<{ slug: string; name: string; releaseDate: Date | null; lab: { name: string } }>;
+  /** When ingest last wrote. The footer states it, so a stale catalogue looks stale instead of trusted. */
+  mirroredAt: Date | null;
 };
 
 export async function getStats(): Promise<Stats> {
-  const [models, labs, providers, listings, types, coverage, benchmarkCoverage, latest] = await Promise.all([
+  const [models, labs, providers, listings, types, coverage, benchmarkCoverage, latest, run] = await Promise.all([
     prisma.model.count(),
     prisma.lab.count(),
     prisma.provider.count(),
@@ -43,6 +45,8 @@ export async function getStats(): Promise<Stats> {
       FROM "Benchmark" b LEFT JOIN "BenchmarkScore" s ON s."benchmarkId" = b.id
       GROUP BY b.id ORDER BY count DESC LIMIT 12`,
     prisma.model.findMany({ orderBy: { releaseDate: 'desc' }, take: 8, select: { slug: true, name: true, releaseDate: true, lab: { select: { name: true } } } }),
+    // finishedAt is null on a run that died mid-flight, so fall back to when it started.
+    prisma.ingestRun.findFirst({ orderBy: { startedAt: 'desc' }, select: { startedAt: true, finishedAt: true, status: true } }),
   ]);
 
   const [counts] = coverage;
@@ -62,6 +66,7 @@ export async function getStats(): Promise<Stats> {
       visionInput: pct(counts?.vision),
       openWeights: pct(counts?.openWeights),
     },
+    mirroredAt: run ? (run.finishedAt ?? run.startedAt) : null,
     benchmarks: benchmarkCoverage.map((b) => ({ name: b.name, scored: Number(b.count) })),
     latest,
   };

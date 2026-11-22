@@ -57,7 +57,10 @@ for (const [name, path] of Object.entries(PAGES)) {
 
 console.log(`scanned ${Object.keys(PAGES).length} pages from ${BASE}, ${cssSeen.size} stylesheet(s)\n`);
 try {
-  const { stdout, stderr } = await run('npx', ['--yes', 'impeccable@latest', 'detect', OUT], { maxBuffer: 1 << 26 });
+  // The HTML files by name, not the directory: pointed at a folder that also holds _next/, the
+  // tool falls back to source-file mode and says so, which quietly turns the element rules off.
+  const targets = Object.keys(PAGES).map((name) => `${OUT}/${name}.html`);
+  const { stdout, stderr } = await run('npx', ['--yes', 'impeccable@latest', 'detect', ...targets], { maxBuffer: 1 << 26 });
   process.stdout.write(stdout);
   process.stderr.write(stderr);
 } catch (err) {

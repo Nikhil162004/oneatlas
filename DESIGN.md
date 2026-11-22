@@ -50,21 +50,28 @@ interesting ones are in `docs/decisions/`.
 
 Seven screens, no client components. Filters, sort, cursor, compare selection and benchmark are
 query-string state submitted by native forms, so a screen is a function of its URL and the URL is the
-same one `GET /api/models` accepts — see `docs/decisions/0006`.
+same one `GET /api/models` accepts — `docs/decisions/0006`.
 
-Tokens live in `src/app/globals.css` and nowhere else: `--bg --fg --muted --faint --line --panel
---accent`. Two rules the design lints enforce and that are easy to break by accident:
+**Tokens** (`src/app/globals.css`, and nowhere else): `--bg --surface --surface-2 --fg --muted
+--faint --line --line-2 --accent --accent-ink --warn --r --r-sm --hair --ease`. Depth is a surface
+step plus a hairline at 9% of the text colour: no shadows beyond `0 1px 2px rgb(0 0 0/.05)`, no
+glows, no hue-to-hue gradient, no blurred blob. Type is one webfont — Archivo at 400/500/600 — over
+the platform mono stack for figures; nothing goes heavier than 600 because hierarchy is size and
+colour, not weight. Sizes are 12/13/15/17/18/24/34, spacing 4/8/12/16/24/32/48, one easing curve
+`cubic-bezier(.22,1,.36,1)`, transitions name the property they animate and last 120–150 ms.
 
-- **No colour literal outside the token block.** A page that wants a tone adds a token.
+Two rules the linters enforce and that are easy to break by accident:
+
+- **No colour literal outside the token block.** A screen that wants a tone adds a token.
 - **Unknown is an em dash, never 0 or "Free".** `format.priceLabel(null)` is `\u2014`;
   `format.priceLabel(0)` is `Free`. The Free filter and the price sort depend on that difference, and
-  so does the reviewer's ability to tell "we did not mirror this" from "this costs nothing".
+  so does a reviewer's ability to tell "we did not mirror this" from "this costs nothing".
 
-Repeated chrome (`.card`, `.rowline`, `table`, `.field`, `.btn`, `.chip`) is defined in that file in
-px, not as utility strings around a spacing token: the design checker cannot evaluate
-`calc(var(--spacing) * 3)`, and a gate whose output cannot be re-derived is decoration. One font is
-loaded — `Geist Mono`, tabular figures, for numbers only — and the "overused face" finding against it
-is accepted on purpose: a data table needs aligned digits, not a personality.
+**Visual interest is data, not decoration.** Coverage, benchmark scores, a lab's release cadence and
+each provider's price spread are drawn as bars whose only other encoding is the number beside them.
+The comparison table marks which rows actually differ, server-side, so the feature needs no toggle.
+Everything that is not a value was deleted: no status pills, no icon tiles, no eyebrow labels, no
+entrance animation, no hover lift on a card.
 
 ## Definition of done
 

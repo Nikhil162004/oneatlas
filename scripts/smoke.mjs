@@ -38,11 +38,13 @@ await check('GET / renders numbers, not an error page', async () => {
   const res = await fetch(`${BASE}/`, { cache: 'no-store' });
   const html = await res.text();
   assert(res.status === 200, `HTTP ${res.status}`);
-  assert(/Every AI model, compared/.test(html), 'hero copy missing, is the page rendering at all?');
+  assert(/who serves it and what each charges/.test(html), 'hero line missing, is the page rendering at all?');
+  // The landing numbers are the claim the README makes, so they belong in a check and not in a slide.
+  assert((html.match(/class="meter/g) ?? []).length >= 5, 'no coverage meters rendered');
   // A missing chunk or a thrown render error makes Next answer 500, so the status is the real
   // signal. Do NOT grep the HTML for "digest" and friends: that string is in every dev response
   // (React's dev payload) and the assertion would fail on a healthy page.
-  const dashes = (html.match(/\u2014<\/dd>/g) ?? []).length;
+  const dashes = (html.match(/>\u2014<\/dd>/g) ?? []).length;
   assert(dashes < 4, `all four counters are em-dashes (dashes=${dashes}): the server render cannot see the data layer`);
 });
 
@@ -203,6 +205,8 @@ await check('GET /models/{lab}/{slug} renders the provider table; unknown is 404
   assert(page.text.includes(detail.body.data.name), 'model name missing from the page');
   assert(page.text.includes(`${detail.body.data.providers.length}`), `provider count ${detail.body.data.providers.length} not rendered`);
   assert(/cheapest/.test(page.text), 'no cheapest marker on the price list');
+  // The live product deep-links #providers; the anchor is a contract with anyone pasting a link.
+  assert(/id="providers"/.test(page.text), 'detail page lost its #providers anchor');
   const missing = await getPage('/models/ghost/no-such-model');
   assert(missing.status === 404, `unknown model page returned ${missing.status}, expected 404`);
 });
