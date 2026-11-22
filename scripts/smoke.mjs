@@ -407,6 +407,23 @@ await check('collections rank by their printed criteria and the finder maps to f
   assert(finder.status === 200 && finder.text.includes('Model finder'), 'finder did not render');
 });
 
+await check('snippets, share cards and structured data describe the same record', async () => {
+  const one = await get('/api/models?limit=1');
+  const slug = one.body.data[0].slug;
+  const page = await getPage(`/models/${slug}`);
+  assert(page.status === 200, 'model page failed');
+  assert(page.text.includes('application/ld+json'), 'no JSON-LD on the model page');
+  assert(page.text.includes('og:image'), 'no og:image wired for the model page');
+  assert(page.text.includes('Python') && page.text.includes('JavaScript'), 'snippet tabs missing');
+  const img = await fetch(`${BASE}/models/${slug}/opengraph-image`);
+  assert(img.status === 200, `share card answered ${img.status}`);
+  assert((img.headers.get('content-type') ?? '').includes('image/png'), 'share card is not a PNG');
+  const siteCard = await fetch(`${BASE}/opengraph-image`);
+  assert(siteCard.status === 200, 'site share card missing');
+  const lab = await getPage(`/labs/${one.body.data[0].lab.slug}`);
+  assert(lab.text.includes('application/ld+json'), 'no JSON-LD on the lab page');
+});
+
 await check('a catalogue price is not counted as a provider offer', async () => {
   // The 476 models ingested without --endpoints each carry one listing derived from their own
   // catalogue entry. Counting those as "providers" put a row called "Unknown provider" at the top of

@@ -22,7 +22,8 @@ compare screen cannot show "same model, cheaper elsewhere" — which is the prod
 | 1 Discovery & search | `GET /api/models` with `q, lab, provider, type, capabilities[], minContext, maxPrice, free, hideDeprecated, sort, dir, cursor, limit`; SQL filters + `pg_trgm` ILIKE; `/models` screen exposes all of it: every parameter has a control in the one GET form (lab and
   provider as datalists), and each active one shows as a removable chip above the table |
 | 2 Detail pages | `GET /api/models/{lab}/{slug}`; specs, per-provider price table, modalities/capabilities, benchmark strip,
-  a cost estimator that re-prices every provider for a token count, a copyable curl for the record, and
+  a cost estimator that re-prices every provider for a token count, copyable snippets for the record
+  (curl, Python, JavaScript — one request, three presentations), and
   alternatives (same type, shared capabilities, cheapest first; also `GET /api/models/{lab}/{slug}/alternatives`) |
 | 3 Comparison | `GET /api/models/compare?ids=` (2–6, GET so the selection is shareable); row-oriented matrix; any model
   can be found and added from the picker's search, not only recent releases |
@@ -39,7 +40,9 @@ compare screen cannot show "same model, cheaper elsewhere" — which is the prod
   and `GET /api/changes`, and `/status` with `GET /api/status` reads the IngestRun rows so a stale
   catalogue is a checkable fact, not a suspicion; the same events appear as a History timeline on
   each model page, ranked as Biggest movers by percentage move on `/changes`, and as RSS at
-  `/changes.xml`. A workload calculator (`/calculator`) ranks the cheapest models by monthly cost
+  `/changes.xml`. Model and lab pages carry JSON-LD, and every model link unfurls with an
+  app-generated share card (`opengraph-image`) quoting its live cheapest price. A workload
+  calculator (`/calculator`) ranks the cheapest models by monthly cost
   for a stated request volume; the whole surface is machine-described at `GET /api/openapi.json`,
   each model carries an embeddable badge at `/badge.svg`, and comparisons export as JSON/CSV |
 

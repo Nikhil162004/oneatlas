@@ -19,8 +19,15 @@ export default async function LabPage({ params }: { params: Promise<{ slug: stri
 
   const max = Math.max(1, ...lab.releases.map((r) => r.count));
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: lab.name,
+  };
+
   return (
     <div className="space-y-10">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <section>
         <p className="text-sm text-[var(--faint)]">
           <Link className="underline" href="/labs">Labs</Link> / {lab.slug}

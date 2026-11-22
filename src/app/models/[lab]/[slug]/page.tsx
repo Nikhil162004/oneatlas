@@ -6,7 +6,7 @@ import { CapabilityTags, Meter, Section, StatRow } from '@/components/ui';
 import CostEstimator from '@/components/CostEstimator';
 import { AddToCompare } from '@/components/tray';
 import { WatchButton } from '@/components/watchlist';
-import CopySnippet from '@/components/CopySnippet';
+import SnippetTabs from '@/components/SnippetTabs';
 import { contextLabel, dateLabel, msLabel, pctLabel, priceLabel, pricePair } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -62,6 +62,19 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
   const sparkMax = series.length ? Math.max(...series) : 0;
   const sparkSpan = sparkMax - sparkMin || 1;
   const sparkPoints = series.map((v, i) => `${2 + (i / (series.length - 1)) * 296},${58 - ((v - sparkMin) / sparkSpan) * 52}`).join(' ');
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: model.name,
+    description: model.description?.slice(0, 300) ?? undefined,
+    brand: { '@type': 'Organization', name: model.lab.name },
+    additionalProperty: [
+      { '@type': 'PropertyValue', name: 'Context window (tokens)', value: model.contextWindow },
+      ...(best?.per1M.prompt !== null && best?.per1M.prompt !== undefined
+        ? [{ '@type': 'PropertyValue', name: 'Cheapest input price (USD per 1M tokens)', value: best.per1M.prompt }]
+        : []),
+    ],
+  };
   const modalities = [
     ...(model.inputModalities ?? []).map((m) => `in: ${m}`),
     ...(model.outputModalities ?? []).map((m) => `out: ${m}`),
@@ -69,6 +82,7 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
 
   return (
     <div className="space-y-12">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <section className="grid items-start gap-8 lg:grid-cols-[1.4fr_1fr]">
         <div>
           <p className="text-sm text-[var(--faint)]">
@@ -264,7 +278,7 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
 
       <section>
         <Section id="use-api" title="Use via API" right={<small>this record, as JSON</small>} />
-        <CopySnippet path={`/api/models/${model.slug}`} />
+        <SnippetTabs path={`/api/models/${model.slug}`} />
         <p className="mt-2 text-xs text-[var(--faint)]">
           One of the read routes; the whole surface is documented at <Link className="underline" href="/api">/api</Link>.
         </p>
