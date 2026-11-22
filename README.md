@@ -23,7 +23,7 @@ screen through the API — there is no fixture array in the frontend.
 Next.js (App Router, server components) · React · TypeScript · TailwindCSS · Next.js route handlers ·
 Zod · PostgreSQL · Prisma. Vercel + Neon is the deploy target; nothing here needs anything else.
 
-Seven screens, an API index page, ten API routes, one Postgres schema. Every screen is
+Ten screens, an API index page, twelve API routes, one Postgres schema. Every screen is
 server-rendered; the four with controls carry a client island that fetches the screen's own API
 and refreshes only its results region, so a filter click never reloads the page, while the URL
 stays the state (`docs/decisions/0008`). Every screen renders from the same service its endpoint does
@@ -140,7 +140,7 @@ Ran on 2026-11-21 in the dev sandbox (Node 20, no Postgres, no Chrome):
 npx prisma validate                       clean
 npx tsc --noEmit                          clean
 npm test                                  26/26 pass (normalise, SQL builder, presentation contract)
-npx next build                            clean, 18 routes (10 handlers + 8 pages), 106 kB shared JS
+npx next build                            clean, 12 handlers + 11 pages, 103 kB shared JS
 npx tsx scripts/ingest.ts --offline fixtures/or_models_full.json --dry
                                           476 records in → 476 models, 60 labs, 476 listings,
                                           7 benchmarks / 756 scores, 0 issues
@@ -188,7 +188,7 @@ Architecture: ![request and data flow](docs/architecture.svg) — also `docs/arc
 npm run verify    # tsc --noEmit && node --test
 npm run build     # writes .next-build, so it can run with the dev server up (npm run clean resets both)
 npm run lint:design       # impeccable detect over src/app, via npx (no install)
-npm run lint:screens      # render the 7 pages into .design-scan/ and run the element rules on them
+npm run lint:screens      # render the 12 pages into .design-scan/ and run the element rules on them
 
 # the UI anti-slop gate (a third-party skill, not vendored here):
 npx skills add felipebasurto/unslop-ui -g
@@ -218,8 +218,10 @@ the app itself never migrates or seeds. To reproduce from scratch:
 #       DATABASE_URL=... npm run ingest -- --endpoints
 #    A full mirror does not fit inside a Hobby function timeout, and `--limit` slices the first N
 #    models rather than paging, so the endpoint is not a resumable seeding path.
-# 5. Refresh later with POST /api/admin/ingest -H "x-ingest-token: $INGEST_TOKEN". It re-runs the
-#    catalogue pass idempotently (re-running changed zero row counts) and takes no body.
+# 5. Refresh by hand with POST /api/admin/ingest -H "x-ingest-token: $INGEST_TOKEN", or let the
+#    schedule do it: vercel.json runs GET /api/cron/ingest daily (03:00 UTC) against CRON_SECRET.
+#    Both re-run the catalogue pass idempotently (re-running changed zero row counts); endpoint
+#    enrichment stays the step-4 shell command. The POST takes no body.
 ```
 
 Three decisions that make this deployable rather than demoable: `prisma generate` runs on

@@ -21,12 +21,15 @@ compare screen cannot show "same model, cheaper elsewhere" — which is the prod
 |---|---|
 | 1 Discovery & search | `GET /api/models` with `q, lab, provider, type, capabilities[], minContext, maxPrice, free, hideDeprecated, sort, dir, cursor, limit`; SQL filters + `pg_trgm` ILIKE; `/models` screen exposes all of it: every parameter has a control in the one GET form (lab and
   provider as datalists), and each active one shows as a removable chip above the table |
-| 2 Detail pages | `GET /api/models/{lab}/{slug}`; specs, per-provider price table, modalities/capabilities, benchmark strip |
-| 3 Comparison | `GET /api/models/compare?ids=` (2–6, GET so the selection is shareable); row-oriented matrix |
+| 2 Detail pages | `GET /api/models/{lab}/{slug}`; specs, per-provider price table, modalities/capabilities, benchmark strip,
+  a cost estimator that re-prices every provider for a token count, and a copyable curl for the record |
+| 3 Comparison | `GET /api/models/compare?ids=` (2–6, GET so the selection is shareable); row-oriented matrix; any model
+  can be found and added from the picker's search, not only recent releases |
 | 4 Rankings & benchmarks | `GET /api/rankings?benchmark&category&type&minContext`; the screen offers benchmark chips plus
   model-category and benchmark-family selects; offset paging by rank |
-| 5 Labs & providers | `GET /api/labs`, `/api/labs/{slug}`, `/api/providers`; releases derived by grouping models on
-  `releaseDate`; each provider row links back to `/models?provider={slug}`, so the directory is a
+| 5 Labs & providers | `GET /api/labs`, `/api/labs/{slug}`, `/api/providers`, `/api/providers/{slug}`; releases derived by grouping
+  models on `releaseDate`; labs and providers both have profile pages (models, prices, release cadence /
+  reliability), and every directory row also links back to `/models?provider={slug}`, so the directory is a
   starting point and not a dead end |
 | 6 Product experience | shared nav, `GET /api/search` global lookup, responsive table, loading/empty/error states |
 
@@ -52,7 +55,7 @@ interesting ones are in `docs/decisions/`.
 
 ## Interface
 
-Eight screens; the four with controls are client islands over a server first paint
+Ten screens; the four with controls are client islands over a server first paint
 (`docs/decisions/0008`). Filters, sort, cursor, compare selection and benchmark are query-string
 state, applied in place and written to the URL, so a screen is a function of its URL and the URL is the
 same one `GET /api/models` accepts — `docs/decisions/0006`.

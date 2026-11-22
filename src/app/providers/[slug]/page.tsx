@@ -54,9 +54,9 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
       <section>
         <Section id="reliability" title="Reliability, as mirrored" right={<small>samples are listings with a measurement, not all listings</small>} />
         <p className="num text-sm text-[var(--muted)]">
-          Average latency p50 {msLabel(provider.avgLatencyMs)} ({provider.latencySamples} of {provider.listingCount}) ·
-          average uptime 24h {pctLabel(provider.avgUptimePct)} ({provider.uptimeSamples} of {provider.listingCount}) ·
-          average input price {priceLabel(provider.avgPromptPer1M)} per 1M
+          Average latency p50 {msLabel(provider.avgLatencyMs)} ({provider.latencySamples} of {provider.listingCount}).
+          Average uptime 24h {pctLabel(provider.avgUptimePct)} ({provider.uptimeSamples} of {provider.listingCount}).
+          Average input price {priceLabel(provider.avgPromptPer1M)} per 1M.
         </p>
       </section>
 

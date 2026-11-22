@@ -29,6 +29,7 @@ const ENDPOINTS: readonly Endpoint[] = [
   ['GET', '/api/providers/{slug}', 'one provider, the models it serves, with its own cheapest price on each', 'path only'],
   ['GET', '/api/stats', 'counts, capability coverage, benchmark coverage, newest releases', '—'],
   ['POST', '/api/admin/ingest', 'mirror the upstream catalogue into Postgres; safe to re-run, and the row counts say so', 'header `x-ingest-token`, and nothing else: one POST mirrors the whole catalogue'],
+  ['SCHEDULED', '/api/cron/ingest', 'the daily catalogue mirror Vercel Cron starts; same refresh as the POST above, with its own secret', 'header `Authorization: Bearer CRON_SECRET`, sent by Vercel; not a public read route'],
 ] as const;
 
 export default async function ApiIndex() {
@@ -49,7 +50,7 @@ export default async function ApiIndex() {
       <div>
         <h1>JSON API</h1>
         <p className="lede mt-2">
-          Eleven read routes over the same Postgres the screens read, and one write route that refills it.
+          Eleven read routes over the same Postgres the screens read, and two guarded routes that refill it (one by hand, one on a schedule).
           Every page in this app and every endpoint here call the same service function, so the two
           cannot disagree about what a filter or a sort means.
         </p>

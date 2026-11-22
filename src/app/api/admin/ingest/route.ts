@@ -1,15 +1,13 @@
-import { normalise } from '@/lib/ingest/normalise';
-import { fetchCatalogue } from '@/lib/ingest/openrouter';
-import { persistCatalogue } from '@/lib/ingest/persist';
-import { rawModelListSchema } from '@/lib/validation';
+import { mirrorCatalogue } from '@/lib/ingest/run';
 import { fail, ok, route } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/admin/ingest — refresh from the deployment: the button a reviewer can press in the
- * Loom, and the endpoint any scheduler that can POST calls. Not a Vercel cron target, because a
- * Vercel cron sends GET and this route is a write; that asymmetry is on purpose.
+ * Loom, and the endpoint any scheduler that can POST calls. The scheduled caller uses
+ * GET /api/cron/ingest instead, because a Vercel cron sends GET and carries its own secret;
+ * both end at `mirrorCatalogue`, so there is one definition of a refresh.
  *
  * Guarded by a shared secret header, and deliberately unprotected by anything cleverer: the
  * endpoint only ever upserts from a public catalogue, so the worst case of a leaked token is a
@@ -21,11 +19,6 @@ export const POST = route(async function adminIngest(request: Request) {
   if (!token) return fail(503, 'Ingest is disabled: set INGEST_TOKEN');
   if (request.headers.get('x-ingest-token') !== token) return fail(400, 'Invalid x-ingest-token');
 
-  const started = Date.now();
-  const models = rawModelListSchema.parse(await fetchCatalogue());
-  const raw = Array.isArray(models) ? models : models.data;
-  const result = normalise(raw);
-  const written = await persistCatalogue(result, 'openrouter:models');
-
-  return ok({ ...written, durationMs: Date.now() - started, issues: result.issues.length }, {}, 'no-store');
+  const result = await mirrorCatalogue('openrouter:models');
+  return ok(result, {}, 'no-store');
 });
