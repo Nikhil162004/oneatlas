@@ -36,6 +36,11 @@ export const viewport: Viewport = {
   ],
 };
 
+/** Canonical origin of the deployed product, as in sitemap.ts: the machine-readable
+ * documents in the footer (spec, JSON status, sitemap, feed) are one artefact wherever they
+ * are served from, so they are linked canonically rather than relatively. */
+const SITE = process.env.SITE_URL ?? 'https://oneatlas-smoky.vercel.app';
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://oneatlas-smoky.vercel.app'),
   title: { default: 'OneAtlas', template: '%s · OneAtlas' },
@@ -122,7 +127,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
                 <Link className="underline" href="/status">Ingest status</Link>
                 <Link className="underline" href="/changes">Change feed</Link>
-                <a className="underline" href="/changes.xml">RSS</a>
+                <a className="underline" href={`${SITE}/changes.xml`}>RSS</a>
                 <span>Press <span className="num">?</span> anywhere for keyboard shortcuts</span>
               </p>
             </div>
@@ -150,9 +155,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <p className="label">For developers</p>
               <ul className="mt-2 space-y-1.5 text-[var(--muted)]">
                 <li><Link className="hover:text-[var(--fg)]" href="/api">JSON API</Link></li>
-                <li><a className="hover:text-[var(--fg)]" href="/api/openapi.json">OpenAPI document</a></li>
-                <li><a className="hover:text-[var(--fg)]" href="/api/status">API status (JSON)</a></li>
-                <li><a className="hover:text-[var(--fg)]" href="/sitemap.xml">Sitemap</a></li>
+                <li><a className="hover:text-[var(--fg)]" href={`${SITE}/api/openapi.json`}>OpenAPI document</a></li>
+                <li><a className="hover:text-[var(--fg)]" href={`${SITE}/api/status`}>API status (JSON)</a></li>
+                <li><a className="hover:text-[var(--fg)]" href={`${SITE}/sitemap.xml`}>Sitemap</a></li>
               </ul>
             </nav>
           </div>
