@@ -5,6 +5,7 @@ import { getStats } from '@/lib/services/stats';
 import SiteSearch from '@/components/SiteSearch';
 import CommandPalette from '@/components/CommandPalette';
 import ThemeToggle from '@/components/ThemeToggle';
+import NavLinks from '@/components/NavLinks';
 import CompareTray from '@/components/tray';
 import './globals.css';
 
@@ -95,9 +96,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               one<span className="text-[var(--accent)]">atlas</span>
             </Link>
             <nav aria-label="Sections" className="navstrip -mx-4 flex min-w-0 flex-1 gap-x-4 px-4 text-sm sm:mx-0 sm:px-0">
-              {NAV.map(([href, label]) => (
-                <Link key={href} href={href} className="py-2 text-[var(--muted)] hover:text-[var(--fg)]">{label}</Link>
-              ))}
+              <NavLinks items={NAV} />
               {/* On a phone the search field would crowd the strip; the page it goes to is the same form. */}
               <Link href="/search" className="py-2 text-[var(--muted)] hover:text-[var(--fg)] md:hidden">Search</Link>
             </nav>

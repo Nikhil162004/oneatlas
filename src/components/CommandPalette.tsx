@@ -82,7 +82,7 @@ export default function CommandPalette() {
   return (
     <>
       <button type="button" className="btn ml-2 hidden shrink-0 md:inline-flex" onClick={() => setOpen(true)} aria-haspopup="dialog">
-        Quick search <span className="num text-[11px] text-[var(--faint)]">⌘K</span>
+        <span className="hidden xl:inline">Quick search</span> <span className="num text-[11px] text-[var(--faint)]">⌘K</span>
       </button>
       {open && (
         <div className="palette-backdrop" onClick={() => setOpen(false)}>

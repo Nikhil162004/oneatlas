@@ -749,22 +749,37 @@ tbody tr:last-child th {
   }
 }
 
-/* The section nav is a strip you can flick on a phone, not four wrapped rows above the content. */
-@media (max-width: 640px) {
-  .navstrip {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
-    mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
-  }
-  .navstrip::-webkit-scrollbar {
-    display: none;
-  }
-  .navstrip > * {
-    flex: none;
-    white-space: nowrap;
+/* The section nav is a strip you can flick, not a row that wraps or overflows: with twelve
+   sections it cannot share the row with search, palette and toggle below wide-desktop widths,
+   and a plain flex row would slide its links under those controls (later siblings paint above
+   it). So the strip scrolls sideways at every width, its neighbours keep shrink-0, and the
+   one-row height contract (--chrome-h) survives. The current section is marked in the accent;
+   aria-current is the semantic, this is the paint. */
+.navstrip {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+}
+.navstrip::-webkit-scrollbar {
+  display: none;
+}
+.navstrip > * {
+  flex: none;
+  white-space: nowrap;
+}
+.navstrip a[aria-current='page'] {
+  color: var(--accent);
+}
+
+/* On a narrow screen the row wraps by design (see .chrome): the strip then gets the full
+   width to itself below the logo and controls, instead of being crushed beside them. */
+@media (max-width: 860px) {
+  .chrome-row .navstrip {
+    flex: 1 1 100%;
+    order: 3;
   }
 }
 
