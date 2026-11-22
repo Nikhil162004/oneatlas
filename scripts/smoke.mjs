@@ -312,6 +312,30 @@ await check('model history, biggest movers and the RSS feed tell the same story'
   }
 });
 
+await check('the OpenAPI document describes routes that answer, and the badge renders', async () => {
+  const spec = await get('/api/openapi.json');
+  assert(spec.status === 200 && String(spec.body.openapi).startsWith('3'), 'no OpenAPI 3 document');
+  for (const p of ['/models', '/models/{lab}/{slug}', '/models/compare', '/rankings', '/changes', '/status']) {
+    assert(spec.body.paths[p], `spec omits ${p}`);
+  }
+  const two = await get('/api/models?limit=2');
+  const slug = two.body.data[0].slug;
+  // Every documented path must answer; the two with required parameters get valid samples.
+  const samples = {
+    '/models/compare': `/models/compare?ids=${two.body.data.map((m) => m.slug).join(',')}`,
+    '/search': '/search?q=claude',
+  };
+  for (const tpl of Object.keys(spec.body.paths)) {
+    if (tpl.includes('{')) continue;
+    const res = await get('/api' + (samples[tpl] ?? tpl));
+    assert(res.status === 200, `documented path ${tpl} answered ${res.status}`);
+  }
+  const badge = await getPage(`/api/models/${slug}/badge.svg`);
+  assert(badge.status === 200 && badge.text.includes('<svg'), 'badge is not an SVG');
+  assert(badge.text.includes(two.body.data[0].name), 'badge does not name the model');
+  assert((await getPage(`/api/models/ghost-lab/ghost-model/badge.svg`)).status === 404, 'ghost badge should be a 404');
+});
+
 await check('a catalogue price is not counted as a provider offer', async () => {
   // The 476 models ingested without --endpoints each carry one listing derived from their own
   // catalogue entry. Counting those as "providers" put a row called "Unknown provider" at the top of

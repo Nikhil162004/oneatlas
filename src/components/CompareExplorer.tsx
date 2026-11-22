@@ -165,6 +165,29 @@ export default function CompareExplorer({
                 <input type="checkbox" checked={onlyDiff} onChange={(e) => setOnlyDiff(e.target.checked)} /> only show differences
               </label>
               <span className="text-xs text-[var(--faint)]">the flag marks the best value in a row, where best is defined</span>
+              <button type="button" className="btn" onClick={() => {
+                const payload = { compared: rows.map((m) => m.slug), attributes: Object.fromEntries(attrs.map((a) => [a.label, Object.fromEntries(rows.map((m, i) => [m.slug, a.values[i]]))])) };
+                const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'oneatlas-compare.json';
+                a.click();
+                URL.revokeObjectURL(url);
+              }}>Download JSON</button>
+              <button type="button" className="btn" onClick={() => {
+                const cell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+                const lines = [
+                  ['Attribute', ...rows.map((m) => m.name)].map(cell).join(','),
+                  ...attrs.map((a) => [a.label, ...a.values].map(cell).join(',')),
+                  ['Capabilities', ...rows.map((m) => Object.entries(m.capabilities).filter(([, on]) => on).map(([k]) => k).join(' '))].map(cell).join(','),
+                ];
+                const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'oneatlas-compare.csv';
+                a.click();
+                URL.revokeObjectURL(url);
+              }}>Download CSV</button>
             </div>
             <div className="tablewrap compare mt-4">
               <table className="text-sm">

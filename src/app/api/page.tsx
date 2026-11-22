@@ -32,6 +32,8 @@ const ENDPOINTS: readonly Endpoint[] = [
   ['GET', '/api/changes', 'what the mirrors moved: prices, specs, capabilities, deprecations, newest first', 'limit'],
   ['GET', '/api/status', 'ingest runs, last successful mirror, catalogue counts: whether the data is alive', '—'],
   ['GET', '/changes.xml', 'the change feed as RSS 2.0, for readers and scripts that poll', '—'],
+  ['GET', '/api/openapi.json', 'this surface as an OpenAPI 3 document, for client generators and request tools', '—'],
+  ['GET', '/api/models/{lab}/{slug}/badge.svg', 'an embeddable SVG badge: model name and cheapest input price, for READMEs', 'path only'],
   ['POST', '/api/admin/ingest', 'mirror the upstream catalogue into Postgres; safe to re-run, and the row counts say so', 'header `x-ingest-token`, and nothing else: one POST mirrors the whole catalogue'],
   ['SCHEDULED', '/api/cron/ingest', 'the daily catalogue mirror Vercel Cron starts; same refresh as the POST above, with its own secret', 'header `Authorization: Bearer CRON_SECRET`, sent by Vercel; not a public read route'],
 ] as const;

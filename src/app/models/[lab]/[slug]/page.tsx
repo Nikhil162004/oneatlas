@@ -227,7 +227,7 @@ export default async function ModelPage({ params }: { params: Promise<{ lab: str
         <Section id="use-api" title="Use via API" right={<small>this record, as JSON</small>} />
         <CopySnippet path={`/api/models/${model.slug}`} />
         <p className="mt-2 text-xs text-[var(--faint)]">
-          One endpoint of eleven read routes; the whole surface is documented at <Link className="underline" href="/api">/api</Link>.
+          One of the read routes; the whole surface is documented at <Link className="underline" href="/api">/api</Link>.
         </p>
       </section>
 
