@@ -42,6 +42,8 @@ const PAGES = {
   collections: '/collections',
   collection: '/collections/longest-context',
   finder: '/finder',
+  matrix: '/benchmarks/matrix',
+  releases: '/releases',
   changes: '/changes',
   status: '/status',
   api: '/api',

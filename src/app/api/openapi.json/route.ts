@@ -112,6 +112,8 @@ const spec = {
     '/collections/{slug}': {
       get: { summary: 'one collection, ranked, each row carrying the fact that placed it', parameters: [pathParam('slug', 'collection slug')], responses: { ...ok('the ranked collection'), '404': { description: 'no such collection' } } },
     },
+    '/benchmarks/matrix': { get: { summary: 'most-scored models against most-populated benchmarks, best per column flagged', responses: ok('the scores grid') } },
+    '/releases': { get: { summary: 'every dated release grouped by month, newest first', responses: ok('monthly release groups') } },
     '/labs': { get: { summary: 'labs by how much they ship', parameters: [param('limit', num('page size'))], responses: ok('labs with model counts') } },
     '/labs/{slug}': {
       get: { summary: "one lab: its models and release cadence", parameters: [pathParam('slug', 'lab slug')], responses: { ...ok('the lab profile'), '404': { description: 'no such lab' } } },

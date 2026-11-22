@@ -773,3 +773,76 @@ export async function listCollections() {
   );
   return { data, meta: { total: data.length } };
 }
+
+/** The benchmark matrix: the most-scored models against the most-populated benchmarks, one
+ * score per cell, best-in-column flagged in the benchmark's own direction. Aggregation happens
+ * over the score table in memory (hundreds of rows, not millions), which keeps the "best"
+ * definition in one readable place. */
+export async function benchmarkMatrix(modelLimit = 25, benchmarkLimit = 8) {
+  const scores = await prisma.benchmarkScore.findMany({
+    include: {
+      benchmark: { select: { slug: true, name: true, unit: true, higherIsBetter: true } },
+      model: { select: { slug: true, name: true, lab: { select: { name: true } } } },
+    },
+  });
+  const benchCount = new Map<string, number>();
+  const modelCount = new Map<string, number>();
+  for (const s of scores) {
+    benchCount.set(s.benchmark.slug, (benchCount.get(s.benchmark.slug) ?? 0) + 1);
+    modelCount.set(s.model.slug, (modelCount.get(s.model.slug) ?? 0) + 1);
+  }
+  const benchmarks = [...new Set(scores.map((s) => s.benchmark.slug))]
+    .sort((a, b) => (benchCount.get(b) ?? 0) - (benchCount.get(a) ?? 0))
+    .slice(0, benchmarkLimit)
+    .map((slug) => scores.find((s) => s.benchmark.slug === slug)!.benchmark);
+  const topModels = [...modelCount.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, modelLimit)
+    .map(([slug]) => slug);
+  const cell = new Map<string, number>();
+  for (const s of scores) cell.set(`${s.model.slug}|${s.benchmark.slug}`, Number(s.score));
+  const best = new Map<string, number>();
+  for (const b of benchmarks) {
+    const vals = topModels.map((m) => cell.get(`${m}|${b.slug}`)).filter((v): v is number => v !== undefined);
+    if (vals.length) best.set(b.slug, b.higherIsBetter ? Math.max(...vals) : Math.min(...vals));
+  }
+  const modelMeta = new Map(scores.map((s) => [s.model.slug, s.model]));
+  return {
+    data: {
+      benchmarks,
+      rows: topModels.map((slug) => ({
+        model: modelMeta.get(slug)!,
+        scoredCount: modelCount.get(slug) ?? 0,
+        cells: benchmarks.map((b) => {
+          const v = cell.get(`${slug}|${b.slug}`);
+          return v === undefined ? null : { score: v, best: v === best.get(b.slug) };
+        }),
+      })),
+    },
+    meta: { models: topModels.length, benchmarks: benchmarks.length },
+  };
+}
+
+/** Every release, grouped by month: the global view of what the labs shipped and when.
+ * Months descend, models inside a month descend by day; undated models are counted in meta
+ * rather than silently dropped, so the page can say how much of the catalogue it cannot place. */
+export async function releaseTimeline(monthLimit = 18) {
+  const rows = await prisma.model.findMany({
+    where: { releaseDate: { not: null } },
+    orderBy: { releaseDate: 'desc' },
+    select: { slug: true, name: true, releaseDate: true, lab: { select: { slug: true, name: true } } },
+  });
+  const undated = await prisma.model.count({ where: { releaseDate: null } });
+  const months = new Map<string, typeof rows>();
+  for (const r of rows) {
+    const key = r.releaseDate!.toISOString().slice(0, 7);
+    if (!months.has(key)) months.set(key, []);
+    months.get(key)!.push(r);
+  }
+  const data = [...months.entries()].slice(0, monthLimit).map(([month, models]) => ({
+    month,
+    count: models.length,
+    models: models.map((m) => ({ slug: m.slug, name: m.name, day: m.releaseDate!.toISOString().slice(0, 10), lab: m.lab })),
+  }));
+  return { data, meta: { months: data.length, dated: rows.length, undated } };
+}

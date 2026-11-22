@@ -437,6 +437,27 @@ await check('the home page leads with search and shows what is moving', async ()
   assert(rankings.text.includes('podium-num'), 'rankings carry no podium');
 });
 
+await check('the benchmark matrix flags true column bests and releases group by month', async () => {
+  const matrix = await get('/api/benchmarks/matrix');
+  assert(matrix.status === 200 && matrix.body.data.rows.length > 0, 'matrix is empty');
+  const b0 = matrix.body.data.benchmarks[0];
+  const col = matrix.body.data.rows.map((r) => r.cells[0]).filter((c) => c !== null);
+  const trueBest = b0.higherIsBetter ? Math.max(...col.map((c) => c.score)) : Math.min(...col.map((c) => c.score));
+  assert(col.filter((c) => c.best).every((c) => c.score === trueBest), 'a flagged best is not the column extreme');
+  assert(col.some((c) => c.best), 'no best flagged in the first column');
+  const page = await getPage('/benchmarks/matrix');
+  assert(page.status === 200 && page.text.includes('Benchmark matrix'), 'matrix page did not render');
+  const rel = await get('/api/releases');
+  assert(rel.status === 200 && rel.body.data.length > 0, 'releases are empty');
+  const months = rel.body.data.map((m) => m.month);
+  assert(JSON.stringify(months) === JSON.stringify([...months].sort().reverse()), 'release months are not descending');
+  assert(rel.body.meta.dated > 0 && rel.body.meta.months === rel.body.data.length, 'release meta disagrees with the groups');
+  const relPage = await getPage('/releases');
+  assert(relPage.status === 200 && relPage.text.includes('Releases'), 'releases page did not render');
+  const api = await getPage('/api');
+  assert(api.text.includes('Try it'), 'playground missing from the API page');
+});
+
 await check('a catalogue price is not counted as a provider offer', async () => {
   // The 476 models ingested without --endpoints each carry one listing derived from their own
   // catalogue entry. Counting those as "providers" put a row called "Unknown provider" at the top of

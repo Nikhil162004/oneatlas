@@ -1,4 +1,5 @@
 import { listModels } from '@/lib/services/catalogue';
+import ApiPlayground from '@/components/ApiPlayground';
 import { CACHE } from '@/lib/api';
 import { listQuerySchema, parseQuery } from '@/lib/validation';
 import { Section } from '@/components/ui';
@@ -33,6 +34,8 @@ const ENDPOINTS: readonly Endpoint[] = [
   ['GET', '/api/collections', 'the guided-discovery sets with leaders, computed from live rows', '—'],
   ['GET', '/api/collections/{slug}', 'one collection, ranked, each row carrying the fact that placed it', 'path only'],
   ['GET', '/api/benchmarks/{slug}', 'one benchmark and every scored model, best first in its own direction', 'path only'],
+  ['GET', '/api/benchmarks/matrix', 'most-scored models against most-populated benchmarks, best per column flagged', '—'],
+  ['GET', '/api/releases', 'every dated release grouped by month, newest first', '—'],
   ['GET', '/api/stats', 'counts, capability coverage, benchmark coverage, newest releases', '—'],
   ['GET', '/api/changes', 'what the mirrors moved: prices, specs, capabilities, deprecations, newest first', 'limit'],
   ['GET', '/api/status', 'ingest runs, last successful mirror, catalogue counts: whether the data is alive', '—'],
@@ -61,11 +64,16 @@ export default async function ApiIndex() {
       <div>
         <h1>JSON API</h1>
         <p className="lede mt-2">
-          Twelve read routes over the same Postgres the screens read, and two guarded routes that refill it (one by hand, one on a schedule).
+          Read routes over the same Postgres the screens read, and two guarded routes that refill it (one by hand, one on a schedule).
           Every page in this app and every endpoint here call the same service function, so the two
           cannot disagree about what a filter or a sort means.
         </p>
       </div>
+
+      <section>
+        <Section id="playground" title="Try it" right={<small>runs against this deployment</small>} />
+        <ApiPlayground />
+      </section>
 
       <section>
         <Section id="endpoints" title="Endpoints" count={ENDPOINTS.length} />

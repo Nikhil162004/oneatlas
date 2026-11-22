@@ -21,7 +21,8 @@ export default async function BenchmarksPage() {
         <p className="mt-1 text-sm text-[var(--muted)]">
           <span className="num">{meta.total} benchmarks</span> mirrored with the catalogue. Each profile lists every scored
           model in the benchmark's own direction; the leaderboard view is at{' '}
-          <Link className="underline" href="/rankings">Rankings</Link>.
+          <Link className="underline" href="/rankings">Rankings</Link>. Grid view:{' '}
+          <Link className="underline" href="/benchmarks/matrix">Benchmark matrix</Link>.
         </p>
       </div>
 
