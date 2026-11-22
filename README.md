@@ -98,6 +98,7 @@ Architecture: ![request and data flow](docs/architecture.svg) — also `docs/arc
 
 ```bash
 npm run verify    # tsc --noEmit && node --test
+npm run build     # writes .next-build, so it can run with the dev server up (npm run clean resets both)
 npm run lint:design   # impeccable detect, via npx (no install)
 # Hallmark's floor gate is not vendored here (it is a third-party skill). Run it from a checkout:
 #   npx skills add nutlope/hallmark -g
